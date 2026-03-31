@@ -20,7 +20,7 @@ Do not reintroduce active package source under `protocol/HWP/packages`.
 
 ### `question-expansion`
 
-- `v0.1.0` product interpretation layer for Question Expander
+- `v0.1.1` product interpretation layer for Question Expander
 - owns Question Expander-specific path contracts, overviews, session artifacts, and history-facing view models
 - remains parallel to `reading-note`, not layered on top of it
 
@@ -29,3 +29,4 @@ Do not reintroduce active package source under `protocol/HWP/packages`.
 - root workspace config lives in `package.json`
 - package source lives in `reading-note/` and `question-expansion/`
 - each package owns its own README, package metadata, and tests
+- package versions are managed independently; this monorepo does not use a single shared repository version tag by default
