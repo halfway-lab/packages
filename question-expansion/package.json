@@ -1,0 +1,23 @@
+{
+  "name": "@halfway-lab/question-expansion",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Question Expander product interpretation layer for Halfway Lab.",
+  "type": "module",
+  "main": "./src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/halfway-lab/packages.git",
+    "directory": "question-expansion"
+  },
+  "homepage": "https://github.com/halfway-lab/packages/tree/main/question-expansion",
+  "bugs": {
+    "url": "https://github.com/halfway-lab/packages/issues"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

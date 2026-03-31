@@ -1,0 +1,13 @@
+{
+  "name": "@halfway-lab/packages",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Monorepo for shared packages maintained by Halfway-Lab.",
+  "workspaces": [
+    "reading-note",
+    "question-expansion"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present"
+  }
+}

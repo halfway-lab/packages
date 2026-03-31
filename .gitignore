@@ -1,0 +1,6 @@
+.DS_Store
+.qoder/
+node_modules/
+dist/
+coverage/
+*.log
