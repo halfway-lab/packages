@@ -16,6 +16,7 @@ Current local package version: `0.1.1`
 - raw payload audit as markdown: `npm run audit:raw-hwp -- ./path/to/payload.json --format markdown`
 - downstream integration check: run the Question Expander app tests from `apps/question-expander`
 - heuristic rule notes: `docs/HEURISTICS.md`
+- release readiness notes: `docs/RELEASE_READINESS.md`
 
 ## Owns
 

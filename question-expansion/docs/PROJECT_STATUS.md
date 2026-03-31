@@ -37,6 +37,7 @@
   - raw HWP contract scaffold is now used by the app HWP client and mock adapter
   - app adapters now return raw payloads while `hwpClient` owns raw-to-product normalization
   - first live HWP benchmark chain-log audit path is now implemented
+  - live branch-type heuristics are now isolated into a dedicated strategy module and documented separately
 
 ## Entry Points
 
@@ -90,7 +91,7 @@
 ## Next Development Step
 
 - Highest-priority next task:
-  - align the real live provider adapter payload directly with the dedicated raw HWP interpretation contract end-to-end
+  - prepare the next release cut, including MIT license metadata and a tighter release-quality pass
 - What should happen right after package-boundary changes:
   - confirm Question Expander app integration still matches the package contract
 
