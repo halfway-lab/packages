@@ -6,11 +6,14 @@ Its job is to translate lower-level HWP output into stable Question Expander obj
 
 ## Version
 
-Current local package version: `0.1.0`
+Current local package version: `0.1.1`
 
 ## Verification
 
 - package self-test: `npm test`
+- raw payload audit: `npm run audit:raw-hwp -- ./path/to/payload.json`
+- live chain-log audit: `npm run audit:raw-hwp -- /path/to/chain_*.jsonl`
+- raw payload audit as markdown: `npm run audit:raw-hwp -- ./path/to/payload.json --format markdown`
 - downstream integration check: run the Question Expander app tests from `apps/question-expander`
 
 ## Owns
@@ -35,8 +38,15 @@ Current local package version: `0.1.0`
 
 ```js
 import {
+  buildRawHwpExpandRequest,
+  extractRawHwpAuditPayload,
   normalizeExpansionPath,
   normalizeExpansionResponse,
+  normalizeRawHwpPath,
+  normalizeRawHwpExpansion,
+  validateRawHwpExpansion,
+  summarizeRawHwpValidation,
+  buildRawHwpAuditReport,
   getBranchTypeLabel,
   buildStructuredOverview,
   buildExpansionViewModel,
@@ -60,6 +70,7 @@ src/
   branchTypes.js
   contracts/
     paths.js
+    rawHwp.js
   overview/
     structuredOverview.js
   runtime/
@@ -79,7 +90,15 @@ src/
 The intended long-term flow is:
 
 1. `protocol/HWP` provides raw chain capability
-2. `packages/question-expansion` interprets raw output into Question Expander structures
+2. `packages/question-expansion` interprets raw HWP output into Question Expander structures
 3. `apps/question-expander` owns input, rendering, interaction, revisit flows, and mobile UX
 
 `packages/question-expansion` and `packages/reading-note` are parallel product-domain packages. Neither package should be described as the interpretation layer for the other.
+
+## Upstream
+
+The real upstream protocol repository is `halfway-lab/HWP`.
+
+This package should depend only on the raw HWP contract shape. It should not depend on HWP repository-internal file layout, scripts, or module structure.
+
+For audit and alignment only, the CLI can also read a real HWP `chain_*.jsonl` log entry and extract a contract-shaped payload before validation. That extraction path is intentionally audit-only and does not change the runtime product contract.

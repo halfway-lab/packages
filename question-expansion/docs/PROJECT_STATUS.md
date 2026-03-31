@@ -7,10 +7,11 @@
 - Repo type: package inside the Halfway-Lab workspace
 - Maintainer role: product-domain package
 - Current package version:
-  - `0.1.0`
+  - `0.1.1`
 - Relationship to HWP:
   - downstream interpretation layer for Question Expander
   - not a protocol source of truth
+  - real upstream protocol repo is `halfway-lab/HWP`
 
 ## Purpose
 
@@ -32,7 +33,10 @@
   - protocol-core execution ownership
   - app UI
 - Current maturity:
-  - working `v0.1.0` package boundary
+  - working `v0.1.1` package boundary
+  - raw HWP contract scaffold is now used by the app HWP client and mock adapter
+  - app adapters now return raw payloads while `hwpClient` owns raw-to-product normalization
+  - first live HWP benchmark chain-log audit path is now implemented
 
 ## Entry Points
 
@@ -42,6 +46,10 @@
   - `package.json`
 - Main test entry:
   - `npm test`
+- Main contract doc:
+  - `docs/HWP_CONTRACT.md`
+- Main audit doc:
+  - `docs/AUDIT_WORKFLOW.md`
 
 ## Directory Notes
 
@@ -63,23 +71,26 @@
   - no dedicated build script declared in `package.json`
 - Test:
   - `npm test`
+- Audit:
+  - `npm run audit:raw-hwp -- ./path/to/payload.json`
+  - `npm run audit:raw-hwp -- ./path/to/chain_*.jsonl`
 - Verify:
   - package self-test plus downstream integration checks in `apps/question-expander`
 
 ## Current Risks
 
 - Known issues:
-  - package remains close to the app and does not yet have a dedicated raw HWP contract
+  - runtime app integration still depends on adapter-shaped raw payloads rather than direct live chain-log ingestion
 - Migration risks:
   - Question Expander logic could drift back into app-only code if this package boundary is not maintained
 - Path or config coupling:
   - current package direction still assumes close coordination with `apps/question-expander`
-  - raw HWP-oriented contract shaping is still incomplete
+  - live audit extraction intentionally knows about chain-log shape, but only inside the audit path
 
 ## Next Development Step
 
 - Highest-priority next task:
-  - define a dedicated raw HWP interpretation contract for Question Expander
+  - align the real live provider adapter payload directly with the dedicated raw HWP interpretation contract end-to-end
 - What should happen right after package-boundary changes:
   - confirm Question Expander app integration still matches the package contract
 

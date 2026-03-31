@@ -1,0 +1,39 @@
+{
+  "question": "我要不要换工作",
+  "core_question": "先拆清这个问题真正卡住的前提",
+  "key_tensions": [
+    "问题前提可能过早固定",
+    "隐藏变量还没进入视野"
+  ],
+  "next_questions": [
+    "哪些前提还没检查？",
+    "哪些变量会改变判断？"
+  ],
+  "paths": [
+    {
+      "path_id": "raw-1",
+      "title": "重写问题前提",
+      "summary": "先检查问题设定方式。",
+      "follow_up_question": "哪些前提还没检查？",
+      "path_type": "premise_shift",
+      "open_score": 0.82,
+      "risk_hint": "问题前提可能过早固定",
+      "labels": ["前提"],
+      "keyTensions": ["问题前提可能过早固定"]
+    },
+    {
+      "path_id": "raw-2",
+      "title": "拉出隐藏变量",
+      "summary": "先把会改变判断的变量拉出来。",
+      "follow_up_question": "哪些变量会改变判断？",
+      "path_type": "hidden_variable",
+      "open_score": 0.88,
+      "risk_hint": "被忽略的变量尚未进入视野",
+      "labels": ["变量"]
+    }
+  ],
+  "meta": {
+    "provider": "hwp_runner_sample",
+    "mode": "audit_fixture"
+  }
+}

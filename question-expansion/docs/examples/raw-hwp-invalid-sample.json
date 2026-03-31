@@ -1,0 +1,12 @@
+{
+  "question": "我要不要换工作",
+  "paths": [
+    {
+      "path_id": "broken-1"
+    }
+  ],
+  "meta": {
+    "provider": "hwp_runner_sample",
+    "mode": "audit_fixture_invalid"
+  }
+}

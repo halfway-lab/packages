@@ -1,7 +1,7 @@
 {
   "name": "@halfway-lab/question-expansion",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Question Expander product interpretation layer for Halfway Lab.",
   "type": "module",
   "main": "./src/index.js",
@@ -18,6 +18,7 @@
     ".": "./src/index.js"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "audit:raw-hwp": "node ./tools/auditRawHwp.mjs"
   }
 }

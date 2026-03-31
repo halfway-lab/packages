@@ -1,7 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { execFile } from 'node:child_process'
+import fs from 'node:fs/promises'
+import { promisify } from 'node:util'
 
 import {
+  buildRawHwpExpandRequest,
   buildChildParentMap,
   buildExpansionViewModel,
   buildHistoryCardViewModel,
@@ -11,10 +15,18 @@ import {
   buildSessionRecord,
   buildStatusMessage,
   buildStructuredOverview,
+  buildRawHwpAuditReport,
   createSessionId,
+  extractRawHwpAuditPayload,
   getBranchTypeLabel,
+  normalizeRawHwpExpansion,
+  normalizeRawHwpPath,
+  summarizeRawHwpValidation,
+  validateRawHwpExpansion,
   normalizeExpansionResponse
 } from '../src/index.js'
+
+const execFileAsync = promisify(execFile)
 
 test('normalizes adapter responses into stable path objects', () => {
   const result = normalizeExpansionResponse({
@@ -32,6 +44,169 @@ test('normalizes adapter responses into stable path objects', () => {
   assert.equal(result[1].id, 'dup-2')
   assert.equal(result[0].level, 2)
   assert.equal(result[0].created_at, '2026-03-31T00:00:00.000Z')
+})
+
+test('normalizes raw HWP contract fields into Question Expander structures', () => {
+  const rootRequest = buildRawHwpExpandRequest({
+    question: '我要不要换工作',
+    depth: 1,
+    options: { max_paths: 3 }
+  })
+  assert.deepEqual(rootRequest, {
+    question: '我要不要换工作',
+    depth: 1,
+    options: { max_paths: 3 }
+  })
+
+  const nestedRequest = buildRawHwpExpandRequest({
+    depth: 2,
+    parentPath: {
+      id: 'raw-1',
+      path_title: '重写问题前提',
+      path_summary: '先检查问题设定方式。',
+      next_question: '哪些前提还没检查？',
+      level: 1
+    }
+  })
+  assert.deepEqual(nestedRequest, {
+    parent_path_id: 'raw-1',
+    context: {
+      parent_title: '重写问题前提',
+      parent_summary: '先检查问题设定方式。',
+      parent_next_question: '哪些前提还没检查？',
+      parent_level: 1
+    },
+    depth: 2
+  })
+
+  const path = normalizeRawHwpPath({
+    path_id: 'raw-1',
+    title: '重写问题前提',
+    summary: '先检查问题设定方式。',
+    follow_up_question: '哪些前提还没检查？',
+    path_type: 'premise_shift',
+    open_score: 0.82,
+    risk_hint: '问题前提可能过早固定',
+    labels: ['前提'],
+    keyTensions: ['问题前提被过早固定']
+  }, {
+    level: 1,
+    timestamp: '2026-03-31T00:00:00.000Z'
+  })
+
+  assert.equal(path.id, 'raw-1')
+  assert.equal(path.branch_type, 'premise_shift')
+  assert.deepEqual(path.tags, ['前提'])
+  assert.deepEqual(path.tensions, ['问题前提被过早固定'])
+
+  const response = normalizeRawHwpExpansion({
+    question: '我要不要换工作',
+    core_question: '先拆清问题真正卡住的前提',
+    key_tensions: ['前提是否被说死了'],
+    next_questions: ['哪些前提还没检查？'],
+    paths: [path],
+    meta: { provider: 'hwp_runner' }
+  })
+
+  assert.equal(response.question, '我要不要换工作')
+  assert.equal(response.expansionPaths.length, 1)
+  assert.equal(response.coreQuestion, '先拆清问题真正卡住的前提')
+  assert.deepEqual(response.keyTensions, ['前提是否被说死了'])
+  assert.deepEqual(response.nextQuestions, ['哪些前提还没检查？'])
+  assert.deepEqual(response.meta, { provider: 'hwp_runner' })
+
+  const validation = validateRawHwpExpansion({
+    question: '我要不要换工作',
+    paths: [path]
+  })
+  assert.equal(validation.valid, true)
+  assert.equal(validation.normalized?.expansionPaths.length, 1)
+  assert.equal(
+    summarizeRawHwpValidation(validation).summaryLine,
+    'Raw HWP payload valid.'
+  )
+  assert.equal(
+    buildRawHwpAuditReport({
+      question: '我要不要换工作',
+      paths: [path]
+    }).pathCount,
+    1
+  )
+
+  const invalid = validateRawHwpExpansion({
+    paths: [{}]
+  })
+  assert.equal(invalid.valid, false)
+  assert.ok(invalid.findings.some(item => item.level === 'error'))
+  assert.match(
+    summarizeRawHwpValidation(invalid).summaryLine,
+    /invalid with/
+  )
+
+  const liveLogPayload = extractRawHwpAuditPayload({
+    payloads: [
+      {
+        text: JSON.stringify({
+          round: 8,
+          round_id: 'round_8',
+          questions: ['How should digital identity systems balance autonomy and security?'],
+          paths: [
+            {
+              blind_spot: {
+                description: 'Assumes infrastructure concentration does not matter.',
+                impact: 'Leaves control dependencies underexplored.'
+              },
+              continuation_hook: 'Which layer still holds practical control?'
+            }
+          ],
+          tensions: [
+            { description: 'Autonomy vs. security' }
+          ],
+          unfinished: ['Who governs the infrastructure layer?'],
+          blind_spot_score: 0.54
+        })
+      }
+    ],
+    meta: {
+      agentMeta: {
+        sessionId: 'hwp_live_sample_20260331',
+        provider: 'bailian',
+        model: 'qwen3-max-2026-01-23'
+      }
+    }
+  })
+
+  assert.equal(liveLogPayload.paths.length, 1)
+  assert.equal(liveLogPayload.paths[0].branch_type, 'blind_spot_probe')
+  assert.equal(liveLogPayload.meta.source_kind, 'hwp_chain_log_entry')
+  assert.equal(
+    buildRawHwpAuditReport({
+      payloads: [
+        {
+          text: JSON.stringify({
+            round: 8,
+            round_id: 'round_8',
+            questions: ['How should digital identity systems balance autonomy and security?'],
+            paths: [
+              {
+                blind_spot: {
+                  description: 'Assumes infrastructure concentration does not matter.',
+                  impact: 'Leaves control dependencies underexplored.'
+                },
+                continuation_hook: 'Which layer still holds practical control?'
+              }
+            ],
+            tensions: [
+              { description: 'Autonomy vs. security' }
+            ],
+            unfinished: ['Who governs the infrastructure layer?'],
+            blind_spot_score: 0.54
+          })
+        }
+      ]
+    }).valid,
+    true
+  )
 })
 
 test('builds overview, session summary, and focused branch view model together', () => {
@@ -164,4 +339,62 @@ test('builds session and history card records from package-owned helpers', () =>
   assert.equal(activeCard.badgeLabel, '当前')
   assert.ok(activeCard.metaItems.includes('2 层已展开'))
   assert.ok(recentCard.metaItems.includes('1 次停一下'))
+})
+
+test('raw HWP audit CLI exits cleanly for valid fixtures and reports invalid fixtures', async () => {
+  const validRun = await execFileAsync(
+    process.execPath,
+    ['./tools/auditRawHwp.mjs', './docs/examples/raw-hwp-sample.json'],
+    { cwd: process.cwd() }
+  )
+
+  assert.match(validRun.stdout, /"valid": true/)
+
+  const markdownRun = await execFileAsync(
+    process.execPath,
+    ['./tools/auditRawHwp.mjs', './docs/examples/raw-hwp-sample.json', '--format', 'markdown'],
+    { cwd: process.cwd() }
+  )
+
+  assert.match(markdownRun.stdout, /# Raw HWP Audit Report/)
+  assert.match(markdownRun.stdout, /Valid: yes/)
+
+  const liveLogRun = await execFileAsync(
+    process.execPath,
+    ['./tools/auditRawHwp.mjs', './docs/examples/raw-hwp-live-log-sample.jsonl'],
+    { cwd: process.cwd() }
+  )
+
+  assert.match(liveLogRun.stdout, /"valid": true/)
+  assert.match(liveLogRun.stdout, /"source_kind": "hwp_chain_log_entry"/)
+
+  const outputPath = './test/tmp-audit-report.md'
+  await execFileAsync(
+    process.execPath,
+    [
+      './tools/auditRawHwp.mjs',
+      './docs/examples/raw-hwp-sample.json',
+      '--format',
+      'markdown',
+      '--output',
+      outputPath
+    ],
+    { cwd: process.cwd() }
+  )
+  const written = await fs.readFile(outputPath, 'utf8')
+  assert.match(written, /# Raw HWP Audit Report/)
+  await fs.rm(outputPath, { force: true })
+
+  await assert.rejects(
+    () => execFileAsync(
+      process.execPath,
+      ['./tools/auditRawHwp.mjs', './docs/examples/raw-hwp-invalid-sample.json'],
+      { cwd: process.cwd() }
+    ),
+    error => {
+      assert.equal(error.code, 2)
+      assert.match(error.stdout, /"valid": false/)
+      return true
+    }
+  )
 })

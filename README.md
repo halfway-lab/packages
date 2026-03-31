@@ -20,5 +20,12 @@ Do not reintroduce active package source under `protocol/HWP/packages`.
 
 ### `question-expansion`
 
-- early package boundary for Question Expander interpretation logic
-- intended to keep product-domain transformation logic out of app-only code and out of protocol-core
+- `v0.1.0` product interpretation layer for Question Expander
+- owns Question Expander-specific path contracts, overviews, session artifacts, and history-facing view models
+- remains parallel to `reading-note`, not layered on top of it
+
+## Monorepo Shape
+
+- root workspace config lives in `package.json`
+- package source lives in `reading-note/` and `question-expansion/`
+- each package owns its own README, package metadata, and tests
