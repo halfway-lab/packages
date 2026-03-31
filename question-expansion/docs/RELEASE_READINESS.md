@@ -2,7 +2,7 @@
 
 ## Current State
 
-- Local package version: `0.1.1`
+- Local package version: `0.1.2`
 - Published npm version: `0.1.1`
 - Package test status: passing
 - Live audit workflow: implemented
@@ -31,7 +31,7 @@ Before the next publish, confirm:
 1. `npm test` passes in `packages/question-expansion`
 2. `npm run test:run` still passes in `apps/question-expander`
 3. `npm_config_cache=/tmp/question-expansion-npm-cache npm pack --dry-run` succeeds
-4. package metadata is complete for the next publish
+4. package metadata is complete for the next publish, including license
 
 ## Recommended Next Version Scope
 
@@ -39,8 +39,7 @@ Target next version: `0.1.2`
 
 Suggested contents:
 
-- add `license: "MIT"` to `package.json`
-- add a `LICENSE` file
+- publish `0.1.2`
 - keep the current heuristic table unless new live payload evidence requires another rule split
 - avoid widening the runtime contract unless the real adapter payload is ready
 

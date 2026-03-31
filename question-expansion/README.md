@@ -6,7 +6,11 @@ Its job is to translate lower-level HWP output into stable Question Expander obj
 
 ## Version
 
-Current local package version: `0.1.1`
+Current local package version: `0.1.2`
+
+## License
+
+MIT
 
 ## Verification
 
