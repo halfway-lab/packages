@@ -1,6 +1,6 @@
 {
   "name": "@halfway-lab/question-expansion",
-  "private": true,
+  "private": false,
   "version": "0.1.1",
   "description": "Question Expander product interpretation layer for Halfway Lab.",
   "type": "module",
@@ -16,6 +16,9 @@
   },
   "exports": {
     ".": "./src/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "test": "node --test",
