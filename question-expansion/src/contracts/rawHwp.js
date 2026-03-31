@@ -1,4 +1,5 @@
 import { normalizeExpansionPath } from './paths.js'
+import { inferLiveBranchType } from './liveBranchTypeHeuristics.js'
 import { buildStructuredOverview } from '../overview/structuredOverview.js'
 
 function toArray(value) {
@@ -241,6 +242,13 @@ export function extractRawHwpAuditPayload(input = {}, options = {}) {
     .map(item => String(item || '').trim())
     .filter(Boolean)
   const blindSpotSignals = toArray(inner.blind_spot_signals)
+  const derivedFieldMap = {
+    question: [],
+    core_question: [],
+    key_tensions: [],
+    next_questions: [],
+    paths: []
+  }
 
   const paths = toArray(inner.paths).map((path, index) => {
     const blindSpot = path?.blind_spot && typeof path.blind_spot === 'object'
@@ -271,22 +279,54 @@ export function extractRawHwpAuditPayload(input = {}, options = {}) {
       unfinished[index],
       questions[index + 1]
     ])
+    const explicitBranchType = pickFirstNonEmpty([
+      path?.branch_type,
+      path?.branchType,
+      path?.path_type
+    ])
+    const inferredBranchType = inferLiveBranchType({
+      title,
+      summary,
+      nextQuestion,
+      blindSpotHint: blindSpotDescription
+    })
+    const branchType = explicitBranchType || inferredBranchType.branchType
+    const id = pickFirstNonEmpty([
+      path?.id,
+      path?.path_id,
+      `${inner.round_id || `round_${inner.round || 1}`}-path-${index + 1}`
+    ])
+
+    derivedFieldMap.paths.push({
+      index,
+      id,
+      derived: {
+        title: !hasAnyField(path, ['title', 'path_title', 'pathTitle']),
+        summary: !hasAnyField(path, ['summary', 'path_summary', 'pathSummary']),
+        next_question: !hasAnyField(path, ['next_question', 'nextQuestion', 'follow_up_question']),
+        branch_type: !explicitBranchType
+      },
+      branch_type_source: explicitBranchType ? 'raw' : 'inferred',
+      branch_type: branchType,
+      heuristic: explicitBranchType
+        ? {
+            rule_id: 'raw_branch_type',
+            matched_keywords: [],
+            confidence: 'exact'
+          }
+        : {
+            rule_id: inferredBranchType.ruleId,
+            matched_keywords: inferredBranchType.matchedKeywords,
+            confidence: inferredBranchType.confidence
+          }
+    })
 
     return {
-      id: pickFirstNonEmpty([
-        path?.id,
-        path?.path_id,
-        `${inner.round_id || `round_${inner.round || 1}`}-path-${index + 1}`
-      ]),
+      id,
       title,
       summary,
       next_question: nextQuestion,
-      branch_type: pickFirstNonEmpty([
-        path?.branch_type,
-        path?.branchType,
-        path?.path_type,
-        'blind_spot_probe'
-      ]),
+      branch_type: branchType,
       blind_spot_hint: blindSpotDescription,
       unfinished_score: inner.blind_spot_score,
       tensions,
@@ -294,23 +334,43 @@ export function extractRawHwpAuditPayload(input = {}, options = {}) {
     }
   })
 
+  const question = pickFirstNonEmpty([
+    options.question,
+    inner.question,
+    inner.core_question,
+    questions[0]
+  ])
+  const coreQuestion = pickFirstNonEmpty([
+    inner.core_question,
+    inner.question,
+    questions[0]
+  ])
+  const nextQuestions = unfinished.slice(0, 3)
+
+  derivedFieldMap.question = [
+    options.question ? 'options.question' : '',
+    inner.question ? 'inner.question' : '',
+    inner.core_question ? 'inner.core_question' : '',
+    questions[0] ? 'questions[0]' : ''
+  ].filter(Boolean)
+  derivedFieldMap.core_question = [
+    inner.core_question ? 'inner.core_question' : '',
+    inner.question ? 'inner.question' : '',
+    questions[0] ? 'questions[0]' : ''
+  ].filter(Boolean)
+  derivedFieldMap.key_tensions = tensions.length > 0 ? ['tensions[].description'] : []
+  derivedFieldMap.next_questions = nextQuestions.length > 0 ? ['unfinished[]'] : []
+
   return {
-    question: pickFirstNonEmpty([
-      options.question,
-      inner.question,
-      inner.core_question,
-      questions[0]
-    ]),
-    core_question: pickFirstNonEmpty([
-      inner.core_question,
-      inner.question,
-      questions[0]
-    ]),
+    question,
+    core_question: coreQuestion,
     key_tensions: tensions,
-    next_questions: unfinished.slice(0, 3),
+    next_questions: nextQuestions,
     paths,
     meta: {
       source_kind: hasWrapperPayloads ? 'hwp_chain_log_entry' : 'hwp_chain_state',
+      extraction_mode: 'derived_for_audit',
+      derived_fields: derivedFieldMap,
       round: inner.round,
       round_id: inner.round_id || '',
       node_id: inner.node_id || '',
@@ -353,9 +413,19 @@ export function buildRawHwpAuditReport(rawHwp = {}, options = {}) {
   const validation = validateRawHwpExpansion(auditPayload, options)
   const summary = summarizeRawHwpValidation(validation)
   const normalized = validation.normalized
+  const pathPreviews = (normalized?.expansionPaths || []).slice(0, 5).map(path => ({
+    id: path.id,
+    title: path.path_title,
+    branchType: path.branch_type,
+    nextQuestion: path.next_question,
+    blindSpotHint: path.blind_spot_hint,
+    heuristic: auditPayload?.meta?.derived_fields?.paths?.find(item => item.id === path.id)?.heuristic || null
+  }))
 
   return {
     ...summary,
+    sourceKind: auditPayload?.meta?.source_kind || 'raw_hwp_payload',
+    extractionMode: auditPayload?.meta?.extraction_mode || 'none',
     findings: validation.findings,
     question: normalized?.question || String(auditPayload?.question || auditPayload?.core_question || '').trim(),
     pathCount: normalized?.expansionPaths?.length || 0,
@@ -366,6 +436,8 @@ export function buildRawHwpAuditReport(rawHwp = {}, options = {}) {
     )),
     nextQuestions: (normalized?.nextQuestions || []).slice(0, 3),
     keyTensions: (normalized?.keyTensions || []).slice(0, 3),
+    pathPreviews,
+    derivedFields: auditPayload?.meta?.derived_fields || {},
     meta: normalized?.meta || (auditPayload?.meta && typeof auditPayload.meta === 'object' ? auditPayload.meta : {})
   }
 }

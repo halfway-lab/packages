@@ -54,6 +54,7 @@ That path is intentionally audit-only:
 - it exists to validate and align real HWP output before adapter shaping is finalized
 - it does not redefine the runtime raw expansion contract
 - it does not make this package depend on HWP repository internals at runtime
+- it may derive titles, summaries, next questions, and branch types when the live log does not expose app-ready path fields directly
 
 ## Expected Raw Request Shape
 

@@ -53,15 +53,23 @@ The script will print a JSON report that includes:
 - `errorCount`
 - `warningCount`
 - `summaryLine`
+- `sourceKind`
+- `extractionMode`
 - `findings`
 - `question`
 - `pathCount`
 - `branchTypes`
+- `pathPreviews`
 - `nextQuestions`
 - `keyTensions`
+- `derivedFields`
 - `meta`
 
-With `--format markdown`, it renders a human-readable report instead of JSON.
+With `--format markdown`, it renders a human-readable report instead of JSON, including extraction notes and branch-type heuristic details when the input came from a live `chain_*.jsonl` log.
+
+The current heuristic rules and their tradeoffs are documented in:
+
+- `docs/HEURISTICS.md`
 
 With `--output <file>`, it writes the rendered report to disk instead of stdout.
 

@@ -60,6 +60,9 @@ function parseAuditInput(rawText) {
 
 function renderReport(report, format) {
   if (format === 'markdown') {
+    const derivedPathCount = Array.isArray(report.derivedFields?.paths)
+      ? report.derivedFields.paths.filter(item => Object.values(item.derived || {}).some(Boolean)).length
+      : 0
     const lines = [
       '# Raw HWP Audit Report',
       '',
@@ -67,6 +70,8 @@ function renderReport(report, format) {
       `- Errors: ${report.errorCount}`,
       `- Warnings: ${report.warningCount}`,
       `- Summary: ${report.summaryLine}`,
+      `- Source kind: ${report.sourceKind || 'raw_hwp_payload'}`,
+      `- Extraction mode: ${report.extractionMode || 'none'}`,
       `- Question: ${report.question || 'N/A'}`,
       `- Path count: ${report.pathCount}`,
       `- Branch types: ${report.branchTypes.join(', ') || 'N/A'}`,
@@ -85,11 +90,72 @@ function renderReport(report, format) {
       lines.push('')
     }
 
+    if (Array.isArray(report.pathPreviews) && report.pathPreviews.length > 0) {
+      lines.push('## Path Preview', '')
+      report.pathPreviews.forEach(item => {
+        lines.push(`- ${item.title || item.id} [${item.branchType || 'unknown'}]`)
+        if (item.nextQuestion) {
+          lines.push(`  Next: ${item.nextQuestion}`)
+        }
+        if (item.blindSpotHint) {
+          lines.push(`  Blind spot: ${item.blindSpotHint}`)
+        }
+        if (item.heuristic?.rule_id) {
+          const heuristicDetails = [`Rule: ${item.heuristic.rule_id}`]
+          if (item.heuristic.confidence) {
+            heuristicDetails.push(`confidence=${item.heuristic.confidence}`)
+          }
+          if (Array.isArray(item.heuristic.matched_keywords) && item.heuristic.matched_keywords.length > 0) {
+            heuristicDetails.push(`keywords=${item.heuristic.matched_keywords.join(', ')}`)
+          }
+          lines.push(`  Heuristic: ${heuristicDetails.join(' | ')}`)
+        }
+      })
+      lines.push('')
+    }
+
     if (report.findings.length > 0) {
       lines.push('## Findings', '')
       report.findings.forEach(item => {
         lines.push(`- [${item.level}] ${item.field}: ${item.message}`)
       })
+      lines.push('')
+    }
+
+    if (report.extractionMode === 'derived_for_audit') {
+      lines.push('## Extraction Notes', '')
+      lines.push(`- Derived path count: ${derivedPathCount}`)
+
+      if (Array.isArray(report.derivedFields?.question) && report.derivedFields.question.length > 0) {
+        lines.push(`- Question sources: ${report.derivedFields.question.join(', ')}`)
+      }
+
+      if (Array.isArray(report.derivedFields?.next_questions) && report.derivedFields.next_questions.length > 0) {
+        lines.push(`- Next-question sources: ${report.derivedFields.next_questions.join(', ')}`)
+      }
+
+      if (Array.isArray(report.derivedFields?.paths) && report.derivedFields.paths.length > 0) {
+        report.derivedFields.paths.forEach(item => {
+          const derivedFlags = Object.entries(item.derived || {})
+            .filter(([, value]) => value)
+            .map(([key]) => key)
+          if (derivedFlags.length > 0) {
+            const heuristicBits = []
+            if (item.heuristic?.rule_id) {
+              heuristicBits.push(`rule=${item.heuristic.rule_id}`)
+            }
+            if (item.heuristic?.confidence) {
+              heuristicBits.push(`confidence=${item.heuristic.confidence}`)
+            }
+            if (Array.isArray(item.heuristic?.matched_keywords) && item.heuristic.matched_keywords.length > 0) {
+              heuristicBits.push(`keywords=${item.heuristic.matched_keywords.join(', ')}`)
+            }
+            const heuristicSuffix = heuristicBits.length > 0 ? `; ${heuristicBits.join('; ')}` : ''
+            lines.push(`- ${item.id}: derived ${derivedFlags.join(', ')} (${item.branch_type_source}: ${item.branch_type}${heuristicSuffix})`)
+          }
+        })
+      }
+
       lines.push('')
     }
 

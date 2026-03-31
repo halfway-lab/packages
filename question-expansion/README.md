@@ -15,6 +15,7 @@ Current local package version: `0.1.1`
 - live chain-log audit: `npm run audit:raw-hwp -- /path/to/chain_*.jsonl`
 - raw payload audit as markdown: `npm run audit:raw-hwp -- ./path/to/payload.json --format markdown`
 - downstream integration check: run the Question Expander app tests from `apps/question-expander`
+- heuristic rule notes: `docs/HEURISTICS.md`
 
 ## Owns
 
@@ -40,6 +41,9 @@ Current local package version: `0.1.1`
 import {
   buildRawHwpExpandRequest,
   extractRawHwpAuditPayload,
+  LIVE_BRANCH_TYPE_RULES,
+  inferLiveBranchType,
+  matchLiveBranchTypeRule,
   normalizeExpansionPath,
   normalizeExpansionResponse,
   normalizeRawHwpPath,
@@ -69,6 +73,7 @@ import {
 src/
   branchTypes.js
   contracts/
+    liveBranchTypeHeuristics.js
     paths.js
     rawHwp.js
   overview/
@@ -101,4 +106,4 @@ The real upstream protocol repository is `halfway-lab/HWP`.
 
 This package should depend only on the raw HWP contract shape. It should not depend on HWP repository-internal file layout, scripts, or module structure.
 
-For audit and alignment only, the CLI can also read a real HWP `chain_*.jsonl` log entry and extract a contract-shaped payload before validation. That extraction path is intentionally audit-only and does not change the runtime product contract.
+For audit and alignment only, the CLI can also read a real HWP `chain_*.jsonl` log entry and extract a contract-shaped payload before validation. That extraction path is intentionally audit-only, reports which fields were derived or inferred, and does not change the runtime product contract.

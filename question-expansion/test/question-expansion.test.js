@@ -9,6 +9,7 @@ import {
   buildChildParentMap,
   buildExpansionViewModel,
   buildHistoryCardViewModel,
+  LIVE_BRANCH_TYPE_RULES,
   buildPathMarkdown,
   buildPauseSummary,
   buildRootParentMap,
@@ -19,6 +20,8 @@ import {
   createSessionId,
   extractRawHwpAuditPayload,
   getBranchTypeLabel,
+  inferLiveBranchType,
+  matchLiveBranchTypeRule,
   normalizeRawHwpExpansion,
   normalizeRawHwpPath,
   summarizeRawHwpValidation,
@@ -132,6 +135,29 @@ test('normalizes raw HWP contract fields into Question Expander structures', () 
     }).pathCount,
     1
   )
+  assert.equal(
+    buildRawHwpAuditReport({
+      question: '我要不要换工作',
+      paths: [path]
+    }).pathPreviews[0].title,
+    '重写问题前提'
+  )
+  assert.ok(Array.isArray(LIVE_BRANCH_TYPE_RULES))
+  assert.ok(LIVE_BRANCH_TYPE_RULES.some(rule => rule.branchType === 'hidden_variable'))
+  assert.equal(
+    inferLiveBranchType({
+      title: 'Assumes infrastructure dependencies do not matter.',
+      nextQuestion: 'Which layer still holds practical control?'
+    }).branchType,
+    'hidden_variable'
+  )
+  assert.equal(
+    matchLiveBranchTypeRule({
+      title: 'Treats cross-border coordination as procedural rather than power-laden.',
+      nextQuestion: 'Which actor can actually enforce identity standards across jurisdictions?'
+    }).rule?.id,
+    'context_link_keywords'
+  )
 
   const invalid = validateRawHwpExpansion({
     paths: [{}]
@@ -177,8 +203,40 @@ test('normalizes raw HWP contract fields into Question Expander structures', () 
   })
 
   assert.equal(liveLogPayload.paths.length, 1)
-  assert.equal(liveLogPayload.paths[0].branch_type, 'blind_spot_probe')
+  assert.equal(liveLogPayload.paths[0].branch_type, 'hidden_variable')
   assert.equal(liveLogPayload.meta.source_kind, 'hwp_chain_log_entry')
+  assert.equal(liveLogPayload.meta.extraction_mode, 'derived_for_audit')
+  assert.equal(liveLogPayload.meta.derived_fields.paths[0].branch_type_source, 'inferred')
+  assert.equal(liveLogPayload.meta.derived_fields.paths[0].heuristic.rule_id, 'hidden_variable_keywords')
+  assert.equal(liveLogPayload.meta.derived_fields.paths[0].heuristic.confidence, 'high')
+  assert.equal(
+    buildRawHwpAuditReport({
+      payloads: [
+        {
+          text: JSON.stringify({
+            round: 8,
+            round_id: 'round_8',
+            questions: ['How should digital identity systems balance autonomy and security?'],
+            paths: [
+              {
+                blind_spot: {
+                  description: 'Assumes infrastructure concentration does not matter.',
+                  impact: 'Leaves control dependencies underexplored.'
+                },
+                continuation_hook: 'Which layer still holds practical control?'
+              }
+            ],
+            tensions: [
+              { description: 'Autonomy vs. security' }
+            ],
+            unfinished: ['Who governs the infrastructure layer?'],
+            blind_spot_score: 0.54
+          })
+        }
+      ]
+    }).extractionMode,
+    'derived_for_audit'
+  )
   assert.equal(
     buildRawHwpAuditReport({
       payloads: [
@@ -206,6 +264,34 @@ test('normalizes raw HWP contract fields into Question Expander structures', () 
       ]
     }).valid,
     true
+  )
+  assert.equal(
+    buildRawHwpAuditReport({
+      payloads: [
+        {
+          text: JSON.stringify({
+            round: 8,
+            round_id: 'round_8',
+            questions: ['How should digital identity systems balance autonomy and security?'],
+            paths: [
+              {
+                blind_spot: {
+                  description: 'Assumes infrastructure concentration does not matter.',
+                  impact: 'Leaves control dependencies underexplored.'
+                },
+                continuation_hook: 'Which layer still holds practical control?'
+              }
+            ],
+            tensions: [
+              { description: 'Autonomy vs. security' }
+            ],
+            unfinished: ['Who governs the infrastructure layer?'],
+            blind_spot_score: 0.54
+          })
+        }
+      ]
+    }).pathPreviews[0].heuristic.rule_id,
+    'hidden_variable_keywords'
   )
 })
 
@@ -358,6 +444,8 @@ test('raw HWP audit CLI exits cleanly for valid fixtures and reports invalid fix
 
   assert.match(markdownRun.stdout, /# Raw HWP Audit Report/)
   assert.match(markdownRun.stdout, /Valid: yes/)
+  assert.match(markdownRun.stdout, /Source kind:/)
+  assert.match(markdownRun.stdout, /## Path Preview/)
 
   const liveLogRun = await execFileAsync(
     process.execPath,
@@ -367,6 +455,18 @@ test('raw HWP audit CLI exits cleanly for valid fixtures and reports invalid fix
 
   assert.match(liveLogRun.stdout, /"valid": true/)
   assert.match(liveLogRun.stdout, /"source_kind": "hwp_chain_log_entry"/)
+
+  const liveLogMarkdownRun = await execFileAsync(
+    process.execPath,
+    ['./tools/auditRawHwp.mjs', './docs/examples/raw-hwp-live-log-sample.jsonl', '--format', 'markdown'],
+    { cwd: process.cwd() }
+  )
+
+  assert.match(liveLogMarkdownRun.stdout, /## Extraction Notes/)
+  assert.match(liveLogMarkdownRun.stdout, /derived path count/i)
+  assert.match(liveLogMarkdownRun.stdout, /## Path Preview/)
+  assert.match(liveLogMarkdownRun.stdout, /Heuristic:/)
+  assert.match(liveLogMarkdownRun.stdout, /rule=/i)
 
   const outputPath = './test/tmp-audit-report.md'
   await execFileAsync(

@@ -2,6 +2,7 @@ export { buildExpansionViewModel, findPathById } from './viewModel/buildExpansio
 export { buildStructuredOverview } from './overview/structuredOverview.js'
 export { BRANCH_TYPE_LABELS, getBranchTypeLabel } from './branchTypes.js'
 export { normalizeExpansionPath, normalizeExpansionResponse } from './contracts/paths.js'
+export { LIVE_BRANCH_TYPE_RULES, inferLiveBranchType, matchLiveBranchTypeRule } from './contracts/liveBranchTypeHeuristics.js'
 export {
   buildRawHwpExpandRequest,
   extractRawHwpAuditPayload,
