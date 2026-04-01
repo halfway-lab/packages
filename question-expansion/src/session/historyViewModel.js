@@ -1,3 +1,20 @@
+/**
+ * Build a history card view model for session list display.
+ *
+ * @param {Partial<SessionRecord>} [session={}] - Session record data
+ * @param {HistoryCardOptions} [options={}] - Display options
+ * @param {boolean} [options.isActive=false] - Whether this is the active session
+ * @param {boolean} [options.isExpanded=false] - Whether the session is expanded
+ * @returns {HistoryCardViewModel} View model for history card UI
+ *
+ * @example
+ * const card = buildHistoryCardViewModel({
+ *   question: 'How do we improve?',
+ *   rootPathCount: 5,
+ *   sessionSummary: { deepestLevel: 3, pauseCount: 2 }
+ * }, { isActive: true })
+ * // => { badgeLabel: '当前', timeLabel: '4/1 14:30', ... }
+ */
 export function buildHistoryCardViewModel(session = {}, options = {}) {
   const isActive = options.isActive === true
   const isExpanded = options.isExpanded === true
@@ -29,6 +46,17 @@ export function buildHistoryCardViewModel(session = {}, options = {}) {
   }
 }
 
+/**
+ * Format a session timestamp for display.
+ *
+ * @param {string|number|Date|null|undefined} value - Timestamp value
+ * @returns {string} Formatted timestamp in Chinese locale (e.g., '4/1 14:30')
+ *
+ * @example
+ * formatSessionTimestamp('2024-04-01T14:30:00Z') // => '4/1 14:30'
+ * formatSessionTimestamp(Date.now()) // => '4/1 14:30'
+ * formatSessionTimestamp(null) // => ''
+ */
 export function formatSessionTimestamp(value) {
   if (!value) {
     return ''

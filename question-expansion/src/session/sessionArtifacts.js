@@ -1,6 +1,7 @@
 import { getBranchTypeLabel } from '../branchTypes.js'
 import { buildStructuredOverview } from '../overview/structuredOverview.js'
 
+/** Names for each hierarchical level */
 const LEVEL_NAMES = [
   '',
   '问题层面',
@@ -14,6 +15,23 @@ const LEVEL_NAMES = [
   '迭代层面'
 ]
 
+/**
+ * Build a pause summary card for a path.
+ *
+ * @param {NormalizedPath} [path={}] - Path to pause on
+ * @param {number} [level=1] - Hierarchical level
+ * @param {Object} [options={}] - Options
+ * @param {string} [options.timestamp] - Override timestamp
+ * @returns {PauseCard} Pause card data
+ *
+ * @example
+ * buildPauseSummary({
+ *   id: '1',
+ *   blind_spot_hint: 'Key insight here',
+ *   next_question: 'What next?'
+ * }, 2)
+ * // => { id: 'pause-1', title: '分析层面的阶段性思考', ... }
+ */
 export function buildPauseSummary(path = {}, level = 1, options = {}) {
   const normalizedLevel = Number(level || path.level || 1)
   const timestamp = options.timestamp || new Date().toISOString()
@@ -28,6 +46,24 @@ export function buildPauseSummary(path = {}, level = 1, options = {}) {
   }
 }
 
+/**
+ * Build Markdown representation of a path and its children.
+ *
+ * @param {Object} options - Markdown options
+ * @param {NormalizedPath} options.path - Path to render
+ * @param {number} [options.level=1] - Starting heading level
+ * @param {Record<string, PauseCard>} [options.pauseCards={}] - Pause cards by path ID
+ * @param {ChildPathsMap} [options.childPathsMap={}] - Child paths map
+ * @param {Record<string, boolean>} [options.openPathIds={}] - Expanded path IDs
+ * @returns {string} Markdown string
+ *
+ * @example
+ * buildPathMarkdown({
+ *   path: { id: '1', path_title: 'Analysis', ... },
+ *   level: 1
+ * })
+ * // => "# Analysis\n\n- 层级：第1层\n..."
+ */
 export function buildPathMarkdown({
   path,
   level = 1,
@@ -40,6 +76,26 @@ export function buildPathMarkdown({
   return lines.join('\n').trim()
 }
 
+/**
+ * Build a summary of the current session state.
+ *
+ * @param {Object} options - Summary options
+ * @param {string} [options.question] - Core question
+ * @param {NormalizedPath[]} [options.rootPaths=[]] - Root paths
+ * @param {ChildPathsMap} [options.childPathsMap={}] - Child paths map
+ * @param {Record<string, PauseCard>} [options.pauseCards={}] - Pause cards
+ * @param {NormalizedPath|null} [options.focusedPath] - Currently focused path
+ * @param {NormalizedPath[]} [options.focusedChildren=[]] - Children of focused path
+ * @returns {SessionSummary} Session summary data
+ *
+ * @example
+ * buildSessionSummary({
+ *   question: 'How do we improve?',
+ *   rootPaths: [{ id: '1', ... }],
+ *   childPathsMap: { '1': [{ id: '2', ... }] }
+ * })
+ * // => { title: 'How do we improve?', rootPathCount: 1, ... }
+ */
 export function buildSessionSummary({
   question,
   rootPaths = [],

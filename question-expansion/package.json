@@ -6,6 +6,7 @@
   "license": "MIT",
   "type": "module",
   "main": "./src/index.js",
+  "types": "./src/index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/halfway-lab/packages.git",

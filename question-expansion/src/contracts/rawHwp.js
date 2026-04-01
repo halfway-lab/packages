@@ -64,6 +64,37 @@ function pickAuditPayloadFromWrapper(payloads = []) {
   return parsedEntries.at(-1) || null
 }
 
+/**
+ * Build a raw HWP expand request payload.
+ *
+ * @param {Object} payload - Request payload
+ * @param {number} [payload.depth=1] - Expansion depth level
+ * @param {string} [payload.question] - Question to expand
+ * @param {Object} [payload.options] - Additional options
+ * @param {Object} [payload.parentPath] - Parent path for nested expansions
+ * @param {string} [payload.parentPath.id] - Parent path ID
+ * @param {string} [payload.parentPath.path_title] - Parent path title
+ * @param {string} [payload.parentPath.path_summary] - Parent path summary
+ * @param {string} [payload.parentPath.next_question] - Parent next question
+ * @param {number} [payload.parentPath.level] - Parent level
+ * @param {Object} [payload.context] - Override context object
+ * @param {string} [payload.parent_path_id] - Parent path ID (alternative to parentPath.id)
+ * @returns {Object} Raw HWP expand request
+ * @throws {Error} If depth > 1 and no parent_path_id or parentPath.id provided
+ *
+ * @example
+ * // Root level expansion
+ * buildRawHwpExpandRequest({ question: 'How do we improve?', depth: 1 })
+ * // => { question: 'How do we improve?', depth: 1 }
+ *
+ * // Nested expansion
+ * buildRawHwpExpandRequest({
+ *   question: 'Dig deeper',
+ *   depth: 2,
+ *   parentPath: { id: 'path-1', path_title: 'Analysis' }
+ * })
+ * // => { question: 'Dig deeper', parent_path_id: 'path-1', context: {...}, depth: 2 }
+ */
 export function buildRawHwpExpandRequest(payload = {}) {
   const depth = Number(payload.depth || 1)
   const question = String(payload.question || '').trim()
@@ -102,6 +133,21 @@ export function buildRawHwpExpandRequest(payload = {}) {
   }
 }
 
+/**
+ * Normalize a raw HWP path with additional raw-specific fields.
+ *
+ * @param {RawHwpPath} rawPath - Raw HWP path data
+ * @param {NormalizeOptions} options - Normalization options
+ * @returns {NormalizedPath & {tensions: string[], source: string}} Normalized path with tensions
+ *
+ * @example
+ * normalizeRawHwpPath({
+ *   path_id: '1',
+ *   title: 'Analysis',
+ *   tensions: [{ description: 'Key tension' }]
+ * })
+ * // => { id: '1', path_title: 'Analysis', tensions: ['Key tension'], source: 'raw_hwp', ... }
+ */
 export function normalizeRawHwpPath(rawPath = {}, options = {}) {
   const normalizedTags = toArray(rawPath.tags || rawPath.labels)
   const normalizedTensions = toArray(
@@ -128,6 +174,21 @@ export function normalizeRawHwpPath(rawPath = {}, options = {}) {
   }
 }
 
+/**
+ * Normalize a raw HWP expansion response.
+ *
+ * @param {RawHwpExpansion|RawHwpExpansion[]} rawHwp - Raw HWP expansion data
+ * @param {NormalizeOptions} options - Normalization options
+ * @returns {NormalizedExpansion} Normalized expansion result
+ * @throws {Error} If response does not contain a valid paths array
+ *
+ * @example
+ * normalizeRawHwpExpansion({
+ *   question: 'How do we improve?',
+ *   paths: [{ path_id: '1', title: 'Analysis' }]
+ * })
+ * // => { question: 'How do we improve?', expansionPaths: [...], ... }
+ */
 export function normalizeRawHwpExpansion(rawHwp = {}, options = {}) {
   const rawPaths = Array.isArray(rawHwp) ? rawHwp : (rawHwp.paths || rawHwp.expansion_paths || [])
 
@@ -170,6 +231,20 @@ export function normalizeRawHwpExpansion(rawHwp = {}, options = {}) {
   }
 }
 
+/**
+ * Validate a raw HWP expansion payload.
+ *
+ * @param {RawHwpExpansion|RawHwpExpansion[]} rawHwp - Raw HWP data to validate
+ * @param {ValidateOptions} options - Validation options
+ * @returns {ValidationResult} Validation result with findings and normalized data
+ *
+ * @example
+ * validateRawHwpExpansion({
+ *   question: 'How?',
+ *   paths: [{ title: 'Analysis' }]
+ * })
+ * // => { valid: false, findings: [...], normalized: null }
+ */
 export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
   const findings = []
   const rawPaths = Array.isArray(rawHwp)
@@ -416,6 +491,21 @@ export function extractRawHwpAuditPayload(input = {}, options = {}) {
   }
 }
 
+/**
+ * Summarize validation results into a human-readable format.
+ *
+ * @param {Object} validation - Validation result
+ * @param {boolean} [validation.valid] - Whether validation passed
+ * @param {ValidationFinding[]} [validation.findings] - Array of findings
+ * @returns {ValidationSummary} Summarized validation results
+ *
+ * @example
+ * summarizeRawHwpValidation({
+ *   valid: false,
+ *   findings: [{ level: 'error', field: 'paths', message: '...' }]
+ * })
+ * // => { valid: false, errorCount: 1, warningCount: 0, summaryLine: '...', ... }
+ */
 export function summarizeRawHwpValidation(validation = {}) {
   const findings = Array.isArray(validation.findings) ? validation.findings : []
   const errors = findings.filter(item => item.level === 'error')

@@ -1,3 +1,7 @@
+/**
+ * Mapping of branch type identifiers to human-readable Chinese labels.
+ * @type {Object<string, string>}
+ */
 export const BRANCH_TYPE_LABELS = {
   premise_shift: '前提转移',
   hidden_variable: '隐藏变量',
@@ -26,6 +30,18 @@ export const BRANCH_TYPE_LABELS = {
   branch_followup: '继续展开'
 }
 
+/**
+ * Get the human-readable label for a branch type.
+ *
+ * @param {string} type - Branch type identifier
+ * @param {string} [fallback=''] - Fallback value if type is empty or unknown
+ * @returns {string} Human-readable label or the original type string
+ *
+ * @example
+ * getBranchTypeLabel('premise_shift') // => '前提转移'
+ * getBranchTypeLabel('unknown_type') // => 'unknown_type'
+ * getBranchTypeLabel(null, '默认') // => '默认'
+ */
 export function getBranchTypeLabel(type, fallback = '') {
   const normalizedType = String(type || '').trim()
 

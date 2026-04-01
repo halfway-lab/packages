@@ -1,6 +1,26 @@
 import { buildStructuredOverview } from '../overview/structuredOverview.js'
 import { buildSessionSummary } from '../session/sessionArtifacts.js'
 
+/**
+ * Build the complete expansion view model for UI rendering.
+ *
+ * @param {Object} params - View model parameters
+ * @param {string} params.question - The core question being explored
+ * @param {NormalizedPath[]} params.rootPaths - Root exploration paths
+ * @param {ChildPathsMap} [params.childPathsMap={}] - Map of parent IDs to child paths
+ * @param {string|null} [params.focusedPathId=null] - ID of currently focused path
+ * @param {boolean} [params.focusModeEnabled=true] - Whether focus mode is enabled
+ * @param {ParentMap} [params.parentPathMap={}] - Map of child IDs to parent IDs
+ * @param {Record<string, PauseCard>} [params.pauseCards={}] - Pause cards by path ID
+ * @returns {ExpansionViewModel} Complete view model for expansion UI
+ *
+ * @example
+ * const viewModel = buildExpansionViewModel({
+ *   question: 'How do we improve?',
+ *   rootPaths: [{ id: '1', path_title: 'Analyze', ... }],
+ *   focusedPathId: '1'
+ * })
+ */
 export function buildExpansionViewModel({
   question,
   rootPaths = [],
@@ -39,6 +59,22 @@ export function buildExpansionViewModel({
   }
 }
 
+/**
+ * Find a path by ID in the tree structure.
+ *
+ * @param {NormalizedPath[]} rootPaths - Root paths to search
+ * @param {ChildPathsMap} childPathsMap - Map of parent IDs to child paths
+ * @param {string|null|undefined} targetId - ID to search for
+ * @returns {NormalizedPath|null} Found path or null
+ *
+ * @example
+ * const path = findPathById(
+ *   [{ id: '1', children: [...] }],
+ *   { '1': [{ id: '2', ... }] },
+ *   '2'
+ * )
+ * // => { id: '2', ... }
+ */
 export function findPathById(rootPaths = [], childPathsMap = {}, targetId) {
   if (!targetId) {
     return null

@@ -1,8 +1,19 @@
+/**
+ * Check if text includes any of the given patterns (case-insensitive).
+ * @param {string} text - Text to search in
+ * @param {string[]} patterns - Patterns to search for
+ * @returns {boolean} True if any pattern is found
+ */
 function includesAny(text, patterns = []) {
   const haystack = String(text || '').toLowerCase()
   return patterns.some(pattern => haystack.includes(pattern))
 }
 
+/**
+ * Heuristic rules for inferring branch types from live HWP chain logs.
+ * These rules are used when explicit branch_type is not provided.
+ * @type {HeuristicRule[]}
+ */
 export const LIVE_BRANCH_TYPE_RULES = [
   {
     id: 'premise_shift_keywords',
@@ -36,6 +47,23 @@ export const LIVE_BRANCH_TYPE_RULES = [
   }
 ]
 
+/**
+ * Infer branch type from path content using keyword heuristics.
+ *
+ * @param {Object} input - Path content to analyze
+ * @param {string} [input.title=''] - Path title
+ * @param {string} [input.summary=''] - Path summary
+ * @param {string} [input.nextQuestion=''] - Next question text
+ * @param {string} [input.blindSpotHint=''] - Blind spot hint
+ * @returns {InferredBranchType} Inferred branch type with confidence
+ *
+ * @example
+ * inferLiveBranchType({
+ *   title: 'What assumptions are we making?',
+ *   summary: 'The premise needs examination'
+ * })
+ * // => { branchType: 'premise_shift', ruleId: 'premise_shift_keywords', ... }
+ */
 export function inferLiveBranchType({ title = '', summary = '', nextQuestion = '', blindSpotHint = '' } = {}) {
   const combinedText = [title, summary, nextQuestion, blindSpotHint]
     .map(value => String(value || '').toLowerCase())
@@ -61,6 +89,16 @@ export function inferLiveBranchType({ title = '', summary = '', nextQuestion = '
   }
 }
 
+/**
+ * Match input against heuristic rules and return the matched rule.
+ *
+ * @param {Object} input - Path content to analyze
+ * @param {string} [input.title=''] - Path title
+ * @param {string} [input.summary=''] - Path summary
+ * @param {string} [input.nextQuestion=''] - Next question text
+ * @param {string} [input.blindSpotHint=''] - Blind spot hint
+ * @returns {MatchedBranchType} Inference result with matched rule reference
+ */
 export function matchLiveBranchTypeRule(input = {}) {
   const inferred = inferLiveBranchType(input)
   const rule = LIVE_BRANCH_TYPE_RULES.find(item => item.id === inferred.ruleId) || null

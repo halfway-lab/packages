@@ -1,8 +1,27 @@
 import { getBranchTypeLabel } from '../branchTypes.js'
 
+/** Maximum number of tensions to include in overview */
 const MAX_TENSIONS = 3
+/** Maximum number of next questions to include in overview */
 const MAX_NEXT_QUESTIONS = 3
 
+/**
+ * Build a structured overview of an expansion session.
+ *
+ * @param {string} question - The core question being explored
+ * @param {NormalizedPath[]} rootPaths - Root exploration paths
+ * @param {Object} options - Overview options
+ * @param {NormalizedPath|null} [options.focusedPath] - Currently focused path
+ * @param {NormalizedPath[]} [options.focusedChildren] - Children of focused path
+ * @returns {StructuredOverview} Structured overview with core question, tensions, and next questions
+ *
+ * @example
+ * const overview = buildStructuredOverview(
+ *   'How do we improve user engagement?',
+ *   [{ id: '1', path_title: 'Analyze behavior', ... }]
+ * )
+ * // => { coreQuestion: '...', keyTensions: [...], nextQuestions: [...] }
+ */
 export function buildStructuredOverview(question, rootPaths = [], options = {}) {
   const normalizedQuestion = String(question || '').trim()
   const paths = Array.isArray(rootPaths) ? rootPaths.filter(Boolean) : []
