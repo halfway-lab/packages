@@ -43,6 +43,7 @@ They do **not** redefine the runtime raw HWP contract.
   - “What hidden variable changes the decision?”
 - Main risk:
   - can absorb paths that are really about infrastructure or systems context rather than a strictly hidden variable
+  - confidence is intentionally capped below `high` because dependency language often overlaps with broader systems-context paths
 
 ### `context_link_keywords`
 

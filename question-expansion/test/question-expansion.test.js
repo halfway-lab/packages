@@ -82,6 +82,16 @@ test('normalizes raw HWP contract fields into Question Expander structures', () 
     depth: 2
   })
 
+  assert.throws(
+    () => buildRawHwpExpandRequest({
+      depth: 2,
+      parentPath: {
+        path_title: '缺少 id 的父路径'
+      }
+    }),
+    /require parent_path_id or parentPath\.id/
+  )
+
   const path = normalizeRawHwpPath({
     path_id: 'raw-1',
     title: '重写问题前提',
@@ -208,7 +218,51 @@ test('normalizes raw HWP contract fields into Question Expander structures', () 
   assert.equal(liveLogPayload.meta.extraction_mode, 'derived_for_audit')
   assert.equal(liveLogPayload.meta.derived_fields.paths[0].branch_type_source, 'inferred')
   assert.equal(liveLogPayload.meta.derived_fields.paths[0].heuristic.rule_id, 'hidden_variable_keywords')
-  assert.equal(liveLogPayload.meta.derived_fields.paths[0].heuristic.confidence, 'high')
+  assert.equal(liveLogPayload.meta.derived_fields.paths[0].heuristic.confidence, 'medium')
+
+  const selectedLastPayload = extractRawHwpAuditPayload({
+    payloads: [
+      {
+        text: JSON.stringify({
+          round: 7,
+          round_id: 'round_7',
+          questions: ['First candidate'],
+          paths: [
+            {
+              blind_spot: {
+                description: 'First candidate payload should not win.',
+                impact: 'This should be ignored in favor of the last payload.'
+              },
+              continuation_hook: 'Ignore this'
+            }
+          ],
+          tensions: [{ description: 'First tension' }],
+          unfinished: ['First unfinished']
+        })
+      },
+      {
+        text: JSON.stringify({
+          round: 8,
+          round_id: 'round_8',
+          questions: ['Last candidate should be used'],
+          paths: [
+            {
+              blind_spot: {
+                description: 'Last payload is the relevant chain state.',
+                impact: 'Audit should prefer the latest parseable chain payload.'
+              },
+              continuation_hook: 'Use this one'
+            }
+          ],
+          tensions: [{ description: 'Last tension' }],
+          unfinished: ['Last unfinished']
+        })
+      }
+    ]
+  })
+
+  assert.equal(selectedLastPayload.question, 'Last candidate should be used')
+  assert.equal(selectedLastPayload.meta.round_id, 'round_8')
   assert.equal(
     buildRawHwpAuditReport({
       payloads: [

@@ -36,6 +36,34 @@ function pickFirstNonEmpty(values = []) {
   return ''
 }
 
+function looksLikeChainState(value) {
+  return Boolean(
+    value &&
+    typeof value === 'object' &&
+    (
+      value.node_id ||
+      value.round_id ||
+      Array.isArray(value.questions) ||
+      Array.isArray(value.unfinished) ||
+      Array.isArray(value.blind_spot_signals)
+    )
+  )
+}
+
+function pickAuditPayloadFromWrapper(payloads = []) {
+  const parsedEntries = payloads
+    .map(item => parseJsonText(item?.text))
+    .filter(Boolean)
+
+  const chainEntries = parsedEntries.filter(looksLikeChainState)
+
+  if (chainEntries.length > 0) {
+    return chainEntries.at(-1)
+  }
+
+  return parsedEntries.at(-1) || null
+}
+
 export function buildRawHwpExpandRequest(payload = {}) {
   const depth = Number(payload.depth || 1)
   const question = String(payload.question || '').trim()
@@ -60,10 +88,15 @@ export function buildRawHwpExpandRequest(payload = {}) {
         parent_next_question: parentPath.next_question,
         parent_level: parentPath.level ?? depth - 1
       }
+  const parentPathId = String(payload.parent_path_id || parentPath.id || '').trim()
+
+  if (!parentPathId) {
+    throw new Error('Nested raw HWP expansion requests require parent_path_id or parentPath.id')
+  }
 
   return {
     ...(question ? { question } : {}),
-    parent_path_id: String(payload.parent_path_id || parentPath.id || '').trim(),
+    parent_path_id: parentPathId,
     context,
     depth
   }
@@ -215,17 +248,11 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
 export function extractRawHwpAuditPayload(input = {}, options = {}) {
   const hasWrapperPayloads = Array.isArray(input?.payloads)
   const parsedInner = hasWrapperPayloads
-    ? input.payloads
-        .map(item => parseJsonText(item?.text))
-        .find(Boolean)
+    ? pickAuditPayloadFromWrapper(input.payloads)
     : null
   const looksLikeChainEntry = Boolean(
-    parsedInner ||
-    input?.node_id ||
-    input?.round_id ||
-    Array.isArray(input?.questions) ||
-    Array.isArray(input?.unfinished) ||
-    Array.isArray(input?.blind_spot_signals)
+    looksLikeChainState(parsedInner) ||
+    looksLikeChainState(input)
   )
 
   if (!looksLikeChainEntry) {

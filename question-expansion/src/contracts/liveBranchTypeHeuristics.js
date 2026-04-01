@@ -14,7 +14,7 @@ export const LIVE_BRANCH_TYPE_RULES = [
     id: 'hidden_variable_keywords',
     branchType: 'hidden_variable',
     keywords: ['dependency', 'dependencies', 'variable', 'hidden', '忽略', '变量'],
-    confidence: 'high'
+    confidence: 'medium'
   },
   {
     id: 'context_link_keywords',
