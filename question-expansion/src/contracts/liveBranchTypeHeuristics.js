@@ -1,3 +1,5 @@
+import { RAW_HWP_DEFAULTS } from '../constants.js'
+
 /**
  * Check if text includes any of the given patterns (case-insensitive).
  * @param {string} text - Text to search in
@@ -82,8 +84,8 @@ export function inferLiveBranchType({ title = '', summary = '', nextQuestion = '
   }
 
   return {
-    branchType: 'branch_followup',
-    ruleId: 'fallback_branch_followup',
+    branchType: RAW_HWP_DEFAULTS.FALLBACK_BRANCH_TYPE,
+    ruleId: RAW_HWP_DEFAULTS.FALLBACK_RULE_ID,
     matchedKeywords: [],
     confidence: 'low'
   }

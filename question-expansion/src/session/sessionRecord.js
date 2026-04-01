@@ -1,4 +1,5 @@
 import { buildSessionSummary } from './sessionArtifacts.js'
+import { findPathById } from '../utils/treeTraversal.js'
 
 /**
  * Build a complete session record for persistence.
@@ -59,25 +60,4 @@ export function buildSessionRecord({
   }
 }
 
-function findPathById(rootPaths = [], childPathsMap = {}, targetId) {
-  if (!targetId) {
-    return null
-  }
 
-  const stack = [...rootPaths]
-  while (stack.length > 0) {
-    const current = stack.pop()
-    if (!current) {
-      continue
-    }
-
-    if (String(current.id) === String(targetId)) {
-      return current
-    }
-
-    const children = childPathsMap[String(current.id)] || []
-    children.forEach(child => stack.push(child))
-  }
-
-  return null
-}

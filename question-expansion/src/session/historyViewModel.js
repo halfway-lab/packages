@@ -1,3 +1,5 @@
+import { HISTORY_CARD_LABELS, TIMESTAMP_FORMAT } from '../constants.js'
+
 /**
  * Build a history card view model for session list display.
  *
@@ -26,23 +28,23 @@ export function buildHistoryCardViewModel(session = {}, options = {}) {
   const headline = String(summary.headline || '').trim()
 
   return {
-    badgeLabel: isActive ? '当前' : '',
+    badgeLabel: isActive ? HISTORY_CARD_LABELS.ACTIVE_BADGE : '',
     timeLabel: formatSessionTimestamp(session.updatedAt),
     title: String(session.question || '').trim(),
     metaItems: isActive
       ? [
-          `${rootPathCount} 条路径`,
-          `${deepestLevel} 层已展开`,
-          isExpanded ? '可继续展开' : '已保存'
+          HISTORY_CARD_LABELS.PATH_COUNT(rootPathCount),
+          HISTORY_CARD_LABELS.LEVEL_COUNT(deepestLevel),
+          isExpanded ? HISTORY_CARD_LABELS.EXPANDABLE_STATUS : HISTORY_CARD_LABELS.SAVED_STATUS
         ]
       : [
-          `${rootPathCount} 条路径`,
-          `${pauseCount} 次停一下`,
-          '点开继续'
+          HISTORY_CARD_LABELS.PATH_COUNT(rootPathCount),
+          HISTORY_CARD_LABELS.PAUSE_COUNT(pauseCount),
+          HISTORY_CARD_LABELS.CONTINUE_PROMPT
         ],
     summaryText: isActive
       ? headline
-      : (activeBranchTitle ? `当前聚焦：${activeBranchTitle}` : headline)
+      : (activeBranchTitle ? HISTORY_CARD_LABELS.FOCUS_PREFIX(activeBranchTitle) : headline)
   }
 }
 
@@ -67,10 +69,5 @@ export function formatSessionTimestamp(value) {
     return ''
   }
 
-  return new Intl.DateTimeFormat('zh-CN', {
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(date)
+  return new Intl.DateTimeFormat(TIMESTAMP_FORMAT.LOCALE, TIMESTAMP_FORMAT.OPTIONS).format(date)
 }

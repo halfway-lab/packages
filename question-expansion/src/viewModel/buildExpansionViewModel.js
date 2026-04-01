@@ -1,5 +1,9 @@
 import { buildStructuredOverview } from '../overview/structuredOverview.js'
 import { buildSessionSummary } from '../session/sessionArtifacts.js'
+import { FOCUS_SCOPE_LABELS } from '../constants.js'
+import { findPathById } from '../utils/treeTraversal.js'
+
+export { findPathById }
 
 /**
  * Build the complete expansion view model for UI rendering.
@@ -59,44 +63,7 @@ export function buildExpansionViewModel({
   }
 }
 
-/**
- * Find a path by ID in the tree structure.
- *
- * @param {NormalizedPath[]} rootPaths - Root paths to search
- * @param {ChildPathsMap} childPathsMap - Map of parent IDs to child paths
- * @param {string|null|undefined} targetId - ID to search for
- * @returns {NormalizedPath|null} Found path or null
- *
- * @example
- * const path = findPathById(
- *   [{ id: '1', children: [...] }],
- *   { '1': [{ id: '2', ... }] },
- *   '2'
- * )
- * // => { id: '2', ... }
- */
-export function findPathById(rootPaths = [], childPathsMap = {}, targetId) {
-  if (!targetId) {
-    return null
-  }
 
-  const stack = [...rootPaths]
-  while (stack.length > 0) {
-    const current = stack.pop()
-    if (!current) {
-      continue
-    }
-
-    if (String(current.id) === String(targetId)) {
-      return current
-    }
-
-    const children = childPathsMap[String(current.id)] || []
-    children.forEach(child => stack.push(child))
-  }
-
-  return null
-}
 
 function buildFocusedScopeIds({ focusedPathId, focusModeEnabled, parentPathMap, childPathsMap }) {
   if (!focusModeEnabled || !focusedPathId) {
@@ -136,14 +103,14 @@ function buildOverviewScope(focusedPath) {
   if (!focusedTitle) {
     return {
       isFocused: false,
-      badgeLabel: '当前问题全局',
-      subtitle: '先抓住问题、张力和下一步，再进入具体路径。'
+      badgeLabel: FOCUS_SCOPE_LABELS.GLOBAL_BADGE,
+      subtitle: FOCUS_SCOPE_LABELS.GLOBAL_SUBTITLE
     }
   }
 
   return {
     isFocused: true,
-    badgeLabel: '当前聚焦分支',
-    subtitle: `总览会优先跟随「${focusedTitle}」这条分支。`
+    badgeLabel: FOCUS_SCOPE_LABELS.FOCUSED_BADGE,
+    subtitle: FOCUS_SCOPE_LABELS.FOCUSED_SUBTITLE(focusedTitle)
   }
 }

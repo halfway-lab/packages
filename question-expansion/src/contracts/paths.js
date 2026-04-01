@@ -1,3 +1,6 @@
+import { pickStringField, pickNumberField, FIELD_ALIASES } from '../utils/fieldHelpers.js'
+import { PATH_DEFAULTS } from '../constants.js'
+
 /**
  * Clamp an unfinished score to the valid range [0, 1].
  * @param {number} value - The score to clamp
@@ -78,36 +81,36 @@ function dedupePathIds(paths = []) {
  */
 export function normalizeExpansionPath(rawPath = {}, options = {}) {
   const index = Number(options.index || 0)
-  const level = Number(options.level || rawPath.level || 1)
+  const level = Number(options.level || pickNumberField(rawPath, 'level', PATH_DEFAULTS.LEVEL))
   const timestamp = options.timestamp || new Date().toISOString()
-  const idSeed = options.idSeed || 'path'
+  const idSeed = options.idSeed || PATH_DEFAULTS.ID_SEED
 
   return {
-    id: String(rawPath.id ?? buildFallbackId(idSeed, level, index)),
-    path_title: String(rawPath.path_title || rawPath.title || `未命名路径 ${index + 1}`).trim(),
-    path_summary: String(
-      rawPath.path_summary ||
-      rawPath.summary ||
-      '当前返回缺少摘要，建议检查 provider 输出结构。'
-    ).trim(),
-    next_question: String(
-      rawPath.next_question ||
-      rawPath.nextQuestion ||
-      '继续追问这个方向里最值得澄清的部分。'
-    ).trim(),
-    branch_type: String(rawPath.branch_type || rawPath.branchType || 'unknown').trim() || 'unknown',
-    unfinished_score: clampUnfinishedScore(
-      rawPath.unfinished_score ?? rawPath.unfinishedScore,
-      0.5
+    id: String(pickStringField(rawPath, 'id') || buildFallbackId(idSeed, level, index)),
+    path_title: pickStringField(rawPath, 'path_title', PATH_DEFAULTS.PATH_TITLE(index)),
+    path_summary: pickStringField(
+      rawPath,
+      'path_summary',
+      PATH_DEFAULTS.PATH_SUMMARY
     ),
-    blind_spot_hint: String(
-      rawPath.blind_spot_hint ||
-      rawPath.blindSpotHint ||
-      '当前返回缺少 blind spot 字段。'
-    ).trim(),
+    next_question: pickStringField(
+      rawPath,
+      'next_question',
+      PATH_DEFAULTS.NEXT_QUESTION
+    ),
+    branch_type: pickStringField(rawPath, 'branch_type', PATH_DEFAULTS.BRANCH_TYPE) || PATH_DEFAULTS.BRANCH_TYPE,
+    unfinished_score: clampUnfinishedScore(
+      pickNumberField(rawPath, 'unfinished_score'),
+      PATH_DEFAULTS.UNFINISHED_SCORE
+    ),
+    blind_spot_hint: pickStringField(
+      rawPath,
+      'blind_spot_hint',
+      PATH_DEFAULTS.BLIND_SPOT_HINT
+    ),
     level,
     tags: Array.isArray(rawPath.tags) ? rawPath.tags.filter(Boolean) : [],
-    created_at: String(rawPath.created_at || rawPath.createdAt || timestamp)
+    created_at: pickStringField(rawPath, 'created_at', timestamp)
   }
 }
 

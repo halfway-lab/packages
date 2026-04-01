@@ -1,9 +1,10 @@
 import { getBranchTypeLabel } from '../branchTypes.js'
-
-/** Maximum number of tensions to include in overview */
-const MAX_TENSIONS = 3
-/** Maximum number of next questions to include in overview */
-const MAX_NEXT_QUESTIONS = 3
+import {
+  MAX_TENSIONS,
+  MAX_NEXT_QUESTIONS,
+  MAX_OVERVIEW_PATH_TITLES,
+  OVERVIEW_DEFAULTS
+} from '../constants.js'
 
 /**
  * Build a structured overview of an expansion session.
@@ -38,51 +39,69 @@ export function buildStructuredOverview(question, rootPaths = [], options = {}) 
 
 function buildCoreQuestion(question, paths, focusedPath) {
   if (!question) {
-    return '这个问题还需要先被说清。'
+    return OVERVIEW_DEFAULTS.EMPTY_QUESTION
   }
 
   const focusedTitle = String(focusedPath?.path_title || '').trim()
   if (focusedTitle && paths.length > 0) {
-    const pathTitles = uniqueStrings(paths.map(path => path.path_title)).slice(0, 3)
-    return `围绕「${focusedTitle}」，这次继续拆清 ${pathTitles.join('、')} 这几块，看看这条分支接下来该往哪里追。`
+    const pathTitles = uniqueStrings(paths.map(path => path.path_title)).slice(0, MAX_OVERVIEW_PATH_TITLES)
+    return OVERVIEW_DEFAULTS.FOCUSED_CORE_QUESTION(focusedTitle, pathTitles)
   }
 
-  const pathTitles = uniqueStrings(paths.map(path => path.path_title)).slice(0, 3)
+  const pathTitles = uniqueStrings(paths.map(path => path.path_title)).slice(0, MAX_OVERVIEW_PATH_TITLES)
   if (pathTitles.length === 0) {
-    return `当前先围绕「${question}」把问题打开，而不是急着给结论。`
+    return OVERVIEW_DEFAULTS.NO_PATHS_CORE_QUESTION(question)
   }
 
-  return `围绕「${question}」，这次先拆清 ${pathTitles.join('、')} 这几块，再决定问题真正卡在哪里。`
+  return OVERVIEW_DEFAULTS.WITH_PATHS_CORE_QUESTION(question, pathTitles)
+}
+
+/**
+ * 通用生成器：从 paths 中提取项目，去重、截断，并处理备选值
+ *
+ * @param {NormalizedPath[]} paths - 路径数组
+ * @param {Function} extractFn - 从 path 中提取项目的函数
+ * @param {NormalizedPath|null} focusedPath - 当前聚焦的路径
+ * @param {Function} focusedFallbackFn - 从 focusedPath 中提取备选值的函数
+ * @param {string[]} defaultFallback - 默认备选值
+ * @param {number} maxCount - 最大项目数
+ * @returns {string[]} 处理后的项目数组
+ */
+function buildOverviewItems(paths, extractFn, focusedPath, focusedFallbackFn, defaultFallback, maxCount) {
+  const items = uniqueStrings(paths.map(extractFn)).slice(0, maxCount)
+
+  if (items.length > 0) {
+    return items
+  }
+
+  const focusedFallback = focusedFallbackFn(focusedPath)
+  if (focusedFallback) {
+    return [focusedFallback]
+  }
+
+  return defaultFallback
 }
 
 function buildKeyTensions(paths, focusedPath) {
-  const tensions = uniqueStrings(paths.map(formatTension)).slice(0, MAX_TENSIONS)
-
-  if (tensions.length > 0) {
-    return tensions
-  }
-
-  const focusedHint = String(focusedPath?.blind_spot_hint || '').trim()
-  if (focusedHint) {
-    return [focusedHint]
-  }
-
-  return ['这个问题里最关键的拉扯还没有完全显形。']
+  return buildOverviewItems(
+    paths,
+    formatTension,
+    focusedPath,
+    (path) => String(path?.blind_spot_hint || '').trim(),
+    [OVERVIEW_DEFAULTS.NO_TENSIONS],
+    MAX_TENSIONS
+  )
 }
 
 function buildNextQuestions(paths, focusedPath) {
-  const questions = uniqueStrings(paths.map(path => normalizeNextQuestion(path.next_question))).slice(0, MAX_NEXT_QUESTIONS)
-
-  if (questions.length > 0) {
-    return questions
-  }
-
-  const focusedNextQuestion = normalizeNextQuestion(focusedPath?.next_question)
-  if (focusedNextQuestion) {
-    return [focusedNextQuestion]
-  }
-
-  return ['如果先不急着判断，这个问题下一步最值得继续追问什么？']
+  return buildOverviewItems(
+    paths,
+    (path) => normalizeNextQuestion(path.next_question),
+    focusedPath,
+    (path) => normalizeNextQuestion(path?.next_question),
+    [OVERVIEW_DEFAULTS.NO_NEXT_QUESTIONS],
+    MAX_NEXT_QUESTIONS
+  )
 }
 
 function uniqueStrings(values) {

@@ -8,6 +8,9 @@
  * @module @halfway-lab/question-expansion
  */
 
+// Constants
+export * from './constants.js'
+
 // View Model
 export { buildExpansionViewModel, findPathById } from './viewModel/buildExpansionViewModel.js'
 
@@ -26,13 +29,21 @@ export { LIVE_BRANCH_TYPE_RULES, inferLiveBranchType, matchLiveBranchTypeRule } 
 // Raw HWP Contract
 export {
   buildRawHwpExpandRequest,
-  extractRawHwpAuditPayload,
   normalizeRawHwpPath,
-  normalizeRawHwpExpansion,
-  validateRawHwpExpansion,
-  summarizeRawHwpValidation,
-  buildRawHwpAuditReport
+  normalizeRawHwpExpansion
 } from './contracts/rawHwp.js'
+
+// Raw HWP Validation
+export {
+  validateRawHwpExpansion,
+  summarizeRawHwpValidation
+} from './contracts/rawHwpValidation.js'
+
+// Raw HWP Audit
+export {
+  extractRawHwpAuditPayload,
+  buildRawHwpAuditReport
+} from './contracts/rawHwpAudit.js'
 
 // Session Artifacts
 export { buildPauseSummary, buildPathMarkdown, buildSessionSummary } from './session/sessionArtifacts.js'

@@ -524,6 +524,134 @@ export interface StatusInfo {
 // ==================== Constants ====================
 
 /**
+ * Maximum number of tensions to display in overview
+ */
+export const MAX_TENSIONS: number
+
+/**
+ * Maximum number of next questions to display in overview
+ */
+export const MAX_NEXT_QUESTIONS: number
+
+/**
+ * Maximum number of path titles to display in overview
+ */
+export const MAX_OVERVIEW_PATH_TITLES: number
+
+/**
+ * Level name mapping for pause summary titles
+ */
+export const LEVEL_NAMES: string[]
+
+/**
+ * Maximum level name index for boundary checking
+ */
+export const MAX_LEVEL_NAME_INDEX: number
+
+/**
+ * Maximum markdown heading level (limits # count)
+ */
+export const MAX_MARKDOWN_HEADING_LEVEL: number
+
+/**
+ * Path field default fallback values
+ */
+export const PATH_DEFAULTS: {
+  PATH_TITLE: (index: number) => string
+  PATH_SUMMARY: string
+  NEXT_QUESTION: string
+  BRANCH_TYPE: string
+  UNFINISHED_SCORE: number
+  BLIND_SPOT_HINT: string
+  LEVEL: number
+  ID_SEED: string
+}
+
+/**
+ * Pause summary default fallback values
+ */
+export const PAUSE_SUMMARY_DEFAULTS: {
+  KEY_INSIGHT: string
+  NEXT_ACTION: string
+}
+
+/**
+ * Overview default fallback texts
+ */
+export const OVERVIEW_DEFAULTS: {
+  EMPTY_QUESTION: string
+  NO_PATHS_CORE_QUESTION: (question: string) => string
+  WITH_PATHS_CORE_QUESTION: (question: string, pathTitles: string[]) => string
+  FOCUSED_CORE_QUESTION: (focusedTitle: string, pathTitles: string[]) => string
+  NO_TENSIONS: string
+  NO_NEXT_QUESTIONS: string
+}
+
+/**
+ * Focus scope labels
+ */
+export const FOCUS_SCOPE_LABELS: {
+  GLOBAL_BADGE: string
+  GLOBAL_SUBTITLE: string
+  FOCUSED_BADGE: string
+  FOCUSED_SUBTITLE: (focusedTitle: string) => string
+}
+
+/**
+ * History card labels
+ */
+export const HISTORY_CARD_LABELS: {
+  ACTIVE_BADGE: string
+  PATH_COUNT: (count: number) => string
+  LEVEL_COUNT: (count: number) => string
+  EXPANDABLE_STATUS: string
+  SAVED_STATUS: string
+  PAUSE_COUNT: (count: number) => string
+  CONTINUE_PROMPT: string
+  FOCUS_PREFIX: (title: string) => string
+}
+
+/**
+ * Session summary defaults
+ */
+export const SESSION_SUMMARY_DEFAULTS: {
+  DEFAULT_TITLE: string
+}
+
+/**
+ * Status message defaults
+ */
+export const STATUS_DEFAULTS: {
+  DEFAULT_MESSAGE: string
+  MODE_PREFIX: string
+  MODEL_PREFIX: string
+  PROVIDER_PREFIX: string
+  REPLAY_NOTICE: string
+}
+
+/**
+ * Timestamp formatting configuration
+ */
+export const TIMESTAMP_FORMAT: {
+  LOCALE: string
+  OPTIONS: {
+    month: string
+    day: string
+    hour: string
+    minute: string
+  }
+}
+
+/**
+ * Raw HWP defaults
+ */
+export const RAW_HWP_DEFAULTS: {
+  SOURCE: string
+  FALLBACK_BRANCH_TYPE: string
+  FALLBACK_RULE_ID: string
+}
+
+/**
  * Branch type to label mapping
  */
 export const BRANCH_TYPE_LABELS: Record<BranchType, string>

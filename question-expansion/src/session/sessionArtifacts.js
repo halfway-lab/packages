@@ -1,19 +1,13 @@
 import { getBranchTypeLabel } from '../branchTypes.js'
 import { buildStructuredOverview } from '../overview/structuredOverview.js'
-
-/** Names for each hierarchical level */
-const LEVEL_NAMES = [
-  '',
-  '问题层面',
-  '分析层面',
-  '行动层面',
-  '执行层面',
-  '细化层面',
-  '验证层面',
-  '优化层面',
-  '固化层面',
-  '迭代层面'
-]
+import { flattenPaths } from '../utils/treeTraversal.js'
+import {
+  LEVEL_NAMES,
+  MAX_LEVEL_NAME_INDEX,
+  MAX_MARKDOWN_HEADING_LEVEL,
+  PAUSE_SUMMARY_DEFAULTS,
+  SESSION_SUMMARY_DEFAULTS
+} from '../constants.js'
 
 /**
  * Build a pause summary card for a path.
@@ -38,9 +32,9 @@ export function buildPauseSummary(path = {}, level = 1, options = {}) {
 
   return {
     id: `pause-${path.id}`,
-    title: `${LEVEL_NAMES[Math.min(normalizedLevel, 9)] || `第${normalizedLevel}层`}的阶段性思考`,
-    keyInsight: path.blind_spot_hint || '这条路径仍有继续展开的空间',
-    nextAction: path.next_question || '继续澄清这条路径的关键问题',
+    title: `${LEVEL_NAMES[Math.min(normalizedLevel, MAX_LEVEL_NAME_INDEX)] || `第${normalizedLevel}层`}的阶段性思考`,
+    keyInsight: path.blind_spot_hint || PAUSE_SUMMARY_DEFAULTS.KEY_INSIGHT,
+    nextAction: path.next_question || PAUSE_SUMMARY_DEFAULTS.NEXT_ACTION,
     level: normalizedLevel,
     created_at: timestamp
   }
@@ -119,7 +113,7 @@ export function buildSessionSummary({
   }, null)
 
   return {
-    title: String(question || '').trim() || '未命名问题链',
+    title: String(question || '').trim() || SESSION_SUMMARY_DEFAULTS.DEFAULT_TITLE,
     activeBranchTitle: String(focusedPath?.path_title || '').trim(),
     rootPathCount: Array.isArray(rootPaths) ? rootPaths.length : 0,
     expandedPathCount: allPaths.length,
@@ -139,7 +133,7 @@ function appendPathMarkdown(lines, path, level, pauseCards, childPathsMap, openP
 
   const pathId = String(path.id)
   const normalizedLevel = Number(level || path.level || 1)
-  const headingLevel = Math.min(normalizedLevel + 1, 6)
+  const headingLevel = Math.min(normalizedLevel + 1, MAX_MARKDOWN_HEADING_LEVEL)
   const headingPrefix = '#'.repeat(headingLevel)
 
   lines.push(`${headingPrefix} ${path.path_title}`)
@@ -187,20 +181,4 @@ function appendPathMarkdown(lines, path, level, pauseCards, childPathsMap, openP
   }
 }
 
-function flattenPaths(rootPaths = [], childPathsMap = {}) {
-  const stack = Array.isArray(rootPaths) ? [...rootPaths] : []
-  const allPaths = []
 
-  while (stack.length > 0) {
-    const current = stack.pop()
-    if (!current) {
-      continue
-    }
-
-    allPaths.push(current)
-    const children = childPathsMap[String(current.id)] || []
-    children.forEach(child => stack.push(child))
-  }
-
-  return allPaths
-}

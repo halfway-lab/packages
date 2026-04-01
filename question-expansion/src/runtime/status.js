@@ -1,3 +1,5 @@
+import { STATUS_DEFAULTS } from '../constants.js'
+
 /**
  * Build a status message from provider information.
  *
@@ -19,18 +21,18 @@ export function buildStatusMessage(info = {}) {
   const parts = []
 
   if (info.providerMode) {
-    parts.push(`模式：${info.providerMode}`)
+    parts.push(`${STATUS_DEFAULTS.MODE_PREFIX}${info.providerMode}`)
   }
 
   if (info.hwpReplayChainPath) {
-    parts.push('当前为 replay 结果，不随输入实时变化')
+    parts.push(STATUS_DEFAULTS.REPLAY_NOTICE)
   } else if (info.llmModel) {
-    parts.push(`模型：${info.llmModel}`)
+    parts.push(`${STATUS_DEFAULTS.MODEL_PREFIX}${info.llmModel}`)
   }
 
   if (info.provider) {
-    parts.push(`provider：${info.provider}`)
+    parts.push(`${STATUS_DEFAULTS.PROVIDER_PREFIX}${info.provider}`)
   }
 
-  return parts.join(' · ') || '后端已连接'
+  return parts.join(' · ') || STATUS_DEFAULTS.DEFAULT_MESSAGE
 }

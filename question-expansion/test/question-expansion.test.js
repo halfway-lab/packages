@@ -29,6 +29,23 @@ import {
   normalizeExpansionResponse
 } from '../src/index.js'
 
+// Import utils modules directly for testing
+import {
+  pickFirstNonEmpty,
+  toArray,
+  hasAnyField,
+  pickStringField,
+  pickNumberField,
+  pickField,
+  FIELD_ALIASES
+} from '../src/utils/fieldHelpers.js'
+
+import {
+  findPathById,
+  flattenPaths,
+  buildDescendantScope
+} from '../src/utils/treeTraversal.js'
+
 const execFileAsync = promisify(execFile)
 
 test('normalizes adapter responses into stable path objects', () => {
@@ -625,4 +642,454 @@ test('HWP v0.6.2 compatibility: handles protocol_version and semantic_groups fie
   const legacyAuditReport = buildRawHwpAuditReport(legacyPayload)
   assert.equal(legacyAuditReport.protocolVersion, '', 'legacy payload should have empty protocolVersion')
   assert.equal(legacyAuditReport.semanticGroupsCount, 0, 'legacy payload should have 0 semanticGroupsCount')
+})
+
+// ============================================================================
+// Field Helpers Tests
+// ============================================================================
+
+test('pickFirstNonEmpty handles various input scenarios', () => {
+  // 空数组
+  assert.equal(pickFirstNonEmpty([]), '')
+  
+  // 全 null/undefined
+  assert.equal(pickFirstNonEmpty([null, undefined, null]), '')
+  
+  // 混合值 - 返回第一个非空值
+  assert.equal(pickFirstNonEmpty(['', '  ', 'valid', 'other']), 'valid')
+  assert.equal(pickFirstNonEmpty([null, undefined, '', 'value']), 'value')
+  assert.equal(pickFirstNonEmpty([0, false, 'truthy', 'other']), 'truthy')
+  
+  // 数字会被转为字符串
+  assert.equal(pickFirstNonEmpty([0, 42, 100]), '42')
+  
+  // 第一个值就是有效值
+  assert.equal(pickFirstNonEmpty(['first', 'second']), 'first')
+  
+  // 空白字符会被 trim 后检查
+  assert.equal(pickFirstNonEmpty(['  ', 'trimmed']), 'trimmed')
+  assert.equal(pickFirstNonEmpty(['  valid-with-spaces  ', 'other']), 'valid-with-spaces')
+})
+
+test('toArray handles boundary cases', () => {
+  // null 和 undefined
+  assert.deepEqual(toArray(null), [])
+  assert.deepEqual(toArray(undefined), [])
+  
+  // 已是数组 - 过滤 falsy 值 (false, 0, '', null, undefined 都会被过滤)
+  assert.deepEqual(toArray([1, null, 2, '', 3, false, 0]), [1, 2, 3])
+  
+  // 空数组
+  assert.deepEqual(toArray([]), [])
+  
+  // 单值（非数组）
+  assert.deepEqual(toArray('single'), [])
+  assert.deepEqual(toArray(123), [])
+  assert.deepEqual(toArray({ key: 'value' }), [])
+  
+  // 包含各种类型 - 注意 false 会被 filter(Boolean) 过滤掉
+  assert.deepEqual(toArray(['a', 'b', 'c']), ['a', 'b', 'c'])
+  assert.deepEqual(toArray([true, false, true]), [true, true])
+})
+
+test('hasAnyField checks field existence correctly', () => {
+  const obj = { a: 1, b: '', c: null, d: undefined, e: 'value' }
+  
+  // 存在且非空
+  assert.equal(hasAnyField(obj, ['a']), true)
+  assert.equal(hasAnyField(obj, ['e']), true)
+  assert.equal(hasAnyField(obj, ['a', 'e']), true)
+  
+  // 存在但为空
+  assert.equal(hasAnyField(obj, ['b']), false) // 空字符串
+  assert.equal(hasAnyField(obj, ['c']), false) // null
+  assert.equal(hasAnyField(obj, ['d']), false) // undefined
+  
+  // 不存在的字段
+  assert.equal(hasAnyField(obj, ['nonexistent']), false)
+  
+  // 混合情况 - 只要有一个存在且非空就返回 true
+  assert.equal(hasAnyField(obj, ['b', 'c', 'a']), true)
+  assert.equal(hasAnyField(obj, ['b', 'c', 'nonexistent']), false)
+  
+  // 空字段数组
+  assert.equal(hasAnyField(obj, []), false)
+  
+  // 空对象
+  assert.equal(hasAnyField({}, ['a']), false)
+  
+  // null/undefined 对象
+  assert.equal(hasAnyField(null, ['a']), false)
+  assert.equal(hasAnyField(undefined, ['a']), false)
+})
+
+test('pickStringField resolves field aliases correctly', () => {
+  // 测试别名解析 - path_title 的别名
+  assert.equal(pickStringField({ path_title: 'Exact Match' }, 'path_title'), 'Exact Match')
+  assert.equal(pickStringField({ title: 'Title Alias' }, 'path_title'), 'Title Alias')
+  assert.equal(pickStringField({ pathTitle: 'CamelCase Alias' }, 'path_title'), 'CamelCase Alias')
+  
+  // 优先级测试 - 优先使用主字段名
+  assert.equal(pickStringField({ path_title: 'Primary', title: 'Secondary' }, 'path_title'), 'Primary')
+  
+  // 自动 trim
+  assert.equal(pickStringField({ title: '  Trimmed  ' }, 'path_title'), 'Trimmed')
+  
+  // 默认值
+  assert.equal(pickStringField({}, 'path_title'), '')
+  assert.equal(pickStringField({}, 'path_title', 'Default Value'), 'Default Value')
+  
+  // 测试 next_question 的别名
+  assert.equal(pickStringField({ next_question: 'Q1' }, 'next_question'), 'Q1')
+  assert.equal(pickStringField({ nextQuestion: 'Q2' }, 'next_question'), 'Q2')
+  assert.equal(pickStringField({ follow_up_question: 'Q3' }, 'next_question'), 'Q3')
+  assert.equal(pickStringField({ continuation_hook: 'Q4' }, 'next_question'), 'Q4')
+  
+  // 测试 branch_type 的别名
+  assert.equal(pickStringField({ branch_type: 'premise_shift' }, 'branch_type'), 'premise_shift')
+  assert.equal(pickStringField({ branchType: 'hidden_variable' }, 'branch_type'), 'hidden_variable')
+  assert.equal(pickStringField({ path_type: 'context_link' }, 'branch_type'), 'context_link')
+})
+
+test('pickNumberField resolves numeric fields correctly', () => {
+  // 正常数字
+  assert.equal(pickNumberField({ unfinished_score: 0.75 }, 'unfinished_score'), 0.75)
+  assert.equal(pickNumberField({ open_score: 0.82 }, 'unfinished_score'), 0.82)
+  
+  // 整数
+  assert.equal(pickNumberField({ level: 3 }, 'level'), 3)
+  
+  // 默认值
+  assert.equal(pickNumberField({}, 'unfinished_score'), undefined)
+  assert.equal(pickNumberField({}, 'unfinished_score', 0.5), 0.5)
+  
+  // 非数字值返回默认值
+  assert.equal(pickNumberField({ unfinished_score: 'not a number' }, 'unfinished_score'), undefined)
+  assert.equal(pickNumberField({ unfinished_score: NaN }, 'unfinished_score'), undefined)
+  assert.equal(pickNumberField({ unfinished_score: null }, 'unfinished_score'), undefined)
+  assert.equal(pickNumberField({ unfinished_score: undefined }, 'unfinished_score'), undefined)
+  
+  // 数字字符串不会自动转换
+  assert.equal(pickNumberField({ unfinished_score: '0.75' }, 'unfinished_score'), undefined)
+})
+
+test('FIELD_ALIASES contains expected field mappings', () => {
+  // 验证关键字段别名存在
+  assert.ok(Array.isArray(FIELD_ALIASES.id))
+  assert.ok(FIELD_ALIASES.id.includes('path_id'))
+  assert.ok(FIELD_ALIASES.id.includes('pathId'))
+  
+  assert.ok(Array.isArray(FIELD_ALIASES.path_title))
+  assert.ok(FIELD_ALIASES.path_title.includes('title'))
+  
+  assert.ok(Array.isArray(FIELD_ALIASES.next_question))
+  assert.ok(FIELD_ALIASES.next_question.includes('follow_up_question'))
+  assert.ok(FIELD_ALIASES.next_question.includes('continuation_hook'))
+  
+  assert.ok(Array.isArray(FIELD_ALIASES.branch_type))
+  assert.ok(FIELD_ALIASES.branch_type.includes('path_type'))
+})
+
+// ============================================================================
+// Tree Traversal Tests
+// ============================================================================
+
+test('findPathById finds paths in multi-level nested tree', () => {
+  const rootPaths = [
+    { id: 'root-1', title: 'Root 1' },
+    { id: 'root-2', title: 'Root 2' }
+  ]
+  const childPathsMap = {
+    'root-1': [
+      { id: 'child-1-1', title: 'Child 1.1' },
+      { id: 'child-1-2', title: 'Child 1.2' }
+    ],
+    'root-2': [
+      { id: 'child-2-1', title: 'Child 2.1' }
+    ],
+    'child-1-1': [
+      { id: 'grandchild-1-1-1', title: 'Grandchild 1.1.1' }
+    ]
+  }
+  
+  // 查找根路径
+  assert.deepEqual(findPathById(rootPaths, childPathsMap, 'root-1'), { id: 'root-1', title: 'Root 1' })
+  assert.deepEqual(findPathById(rootPaths, childPathsMap, 'root-2'), { id: 'root-2', title: 'Root 2' })
+  
+  // 查找子路径
+  assert.deepEqual(findPathById(rootPaths, childPathsMap, 'child-1-1'), { id: 'child-1-1', title: 'Child 1.1' })
+  assert.deepEqual(findPathById(rootPaths, childPathsMap, 'child-1-2'), { id: 'child-1-2', title: 'Child 1.2' })
+  assert.deepEqual(findPathById(rootPaths, childPathsMap, 'child-2-1'), { id: 'child-2-1', title: 'Child 2.1' })
+  
+  // 查找孙路径
+  assert.deepEqual(findPathById(rootPaths, childPathsMap, 'grandchild-1-1-1'), { id: 'grandchild-1-1-1', title: 'Grandchild 1.1.1' })
+})
+
+test('findPathById returns null for non-existent ID', () => {
+  const rootPaths = [{ id: 'root-1', title: 'Root 1' }]
+  const childPathsMap = { 'root-1': [{ id: 'child-1', title: 'Child 1' }] }
+  
+  // 不存在的 ID
+  assert.equal(findPathById(rootPaths, childPathsMap, 'non-existent'), null)
+  assert.equal(findPathById(rootPaths, childPathsMap, ''), null)
+  
+  // null/undefined ID
+  assert.equal(findPathById(rootPaths, childPathsMap, null), null)
+  assert.equal(findPathById(rootPaths, childPathsMap, undefined), null)
+})
+
+test('flattenPaths flattens complex tree structures', () => {
+  const rootPaths = [
+    { id: 'root-1', title: 'Root 1' },
+    { id: 'root-2', title: 'Root 2' }
+  ]
+  const childPathsMap = {
+    'root-1': [
+      { id: 'child-1-1', title: 'Child 1.1' },
+      { id: 'child-1-2', title: 'Child 1.2' }
+    ],
+    'root-2': [],
+    'child-1-1': [
+      { id: 'grandchild-1-1-1', title: 'Grandchild 1.1.1' }
+    ]
+  }
+  
+  const flattened = flattenPaths(rootPaths, childPathsMap)
+  
+  // 验证所有路径都被展平 (root-1, root-2, child-1-1, child-1-2, grandchild-1-1-1 = 5)
+  assert.equal(flattened.length, 5)
+  
+  // 验证包含所有 ID
+  const ids = flattened.map(p => p.id)
+  assert.ok(ids.includes('root-1'))
+  assert.ok(ids.includes('root-2'))
+  assert.ok(ids.includes('child-1-1'))
+  assert.ok(ids.includes('child-1-2'))
+  assert.ok(ids.includes('grandchild-1-1-1'))
+})
+
+test('flattenPaths handles empty trees and edge cases', () => {
+  // 空根路径
+  assert.deepEqual(flattenPaths([], {}), [])
+  
+  // 只有根路径，没有子路径
+  const singleRoot = [{ id: 'root-1', title: 'Root 1' }]
+  assert.deepEqual(flattenPaths(singleRoot, {}), singleRoot)
+  
+  // 空 childPathsMap
+  assert.deepEqual(flattenPaths([{ id: 'root-1' }], {}), [{ id: 'root-1' }])
+  
+  // null/undefined 输入
+  assert.deepEqual(flattenPaths(null, {}), [])
+  assert.deepEqual(flattenPaths(undefined, {}), [])
+  
+  // 非数组输入
+  assert.deepEqual(flattenPaths('not an array', {}), [])
+})
+
+test('buildDescendantScope builds correct descendant sets', () => {
+  const childPathsMap = {
+    'root-1': [
+      { id: 'child-1-1' },
+      { id: 'child-1-2' }
+    ],
+    'child-1-1': [
+      { id: 'grandchild-1-1-1' },
+      { id: 'grandchild-1-1-2' }
+    ],
+    'grandchild-1-1-1': [
+      { id: 'great-grandchild-1-1-1-1' }
+    ],
+    'child-1-2': [],
+    'grandchild-1-1-2': [],
+    'great-grandchild-1-1-1-1': []
+  }
+  
+  // 根路径的后代 (root-1, child-1-1, child-1-2, grandchild-1-1-1, grandchild-1-1-2, great-grandchild-1-1-1-1 = 6)
+  const rootScope = buildDescendantScope('root-1', childPathsMap)
+  assert.equal(rootScope.size, 6)
+  assert.ok(rootScope.has('root-1'))
+  assert.ok(rootScope.has('child-1-1'))
+  assert.ok(rootScope.has('child-1-2'))
+  assert.ok(rootScope.has('grandchild-1-1-1'))
+  assert.ok(rootScope.has('grandchild-1-1-2'))
+  assert.ok(rootScope.has('great-grandchild-1-1-1-1'))
+  
+  // 子路径的后代 (child-1-1, grandchild-1-1-1, grandchild-1-1-2, great-grandchild-1-1-1-1 = 4)
+  const childScope = buildDescendantScope('child-1-1', childPathsMap)
+  assert.equal(childScope.size, 4)
+  assert.ok(childScope.has('child-1-1'))
+  assert.ok(childScope.has('grandchild-1-1-1'))
+  assert.ok(childScope.has('grandchild-1-1-2'))
+  assert.ok(childScope.has('great-grandchild-1-1-1-1'))
+  
+  // 叶子节点的后代只有自身
+  const leafScope = buildDescendantScope('child-1-2', childPathsMap)
+  assert.equal(leafScope.size, 1)
+  assert.ok(leafScope.has('child-1-2'))
+})
+
+test('buildDescendantScope handles edge cases', () => {
+  // 空 ID
+  assert.deepEqual(buildDescendantScope('', {}), new Set())
+  assert.deepEqual(buildDescendantScope(null, {}), new Set())
+  assert.deepEqual(buildDescendantScope(undefined, {}), new Set())
+  
+  // 不存在的 ID 返回包含自身的集合
+  const scope = buildDescendantScope('non-existent', {})
+  assert.equal(scope.size, 1)
+  assert.ok(scope.has('non-existent'))
+  
+  // 空的 childPathsMap
+  const emptyMapScope = buildDescendantScope('root-1', {})
+  assert.equal(emptyMapScope.size, 1)
+  assert.ok(emptyMapScope.has('root-1'))
+})
+
+// ============================================================================
+// Raw HWP Validation Boundary Tests
+// ============================================================================
+
+test('validateRawHwpExpansion handles completely empty input', () => {
+  // 完全空的输入
+  const emptyValidation = validateRawHwpExpansion({})
+  assert.equal(emptyValidation.valid, false)
+  assert.ok(emptyValidation.findings.some(f => f.level === 'error' && f.field === 'paths'))
+  assert.equal(emptyValidation.normalized, null)
+  
+  // null 输入 - 验证函数有默认参数 rawHwp = {}，所以 null 会被处理
+  // 但代码中使用 rawHwp.paths 会报错，需要验证实际行为
+  // 这里我们主要验证空对象的行为是正确的
+})
+
+test('validateRawHwpExpansion handles missing critical fields', () => {
+  // 缺少 paths 数组
+  const noPaths = validateRawHwpExpansion({ question: 'Test Question' })
+  assert.equal(noPaths.valid, false)
+  assert.ok(noPaths.findings.some(f => f.level === 'error' && f.field === 'paths'))
+  
+  // 空 paths 数组
+  const emptyPaths = validateRawHwpExpansion({ question: 'Test', paths: [] })
+  assert.equal(emptyPaths.valid, false)
+  assert.ok(emptyPaths.findings.some(f => f.level === 'error' && f.field === 'paths'))
+  
+  // 缺少 question 字段（应该产生 warning）
+  const noQuestion = validateRawHwpExpansion({
+    paths: [{ path_id: '1', title: 'Test', next_question: 'Next?' }]
+  })
+  assert.equal(noQuestion.valid, true) // 没有 question 不会导致 invalid
+  assert.ok(noQuestion.findings.some(f => f.level === 'warning' && f.field === 'question'))
+  
+  // 缺少 path title（应该产生 error）
+  const noTitle = validateRawHwpExpansion({
+    question: 'Test',
+    paths: [{ path_id: '1', next_question: 'Next?' }]
+  })
+  assert.equal(noTitle.valid, false)
+  assert.ok(noTitle.findings.some(f => f.level === 'error' && f.field.includes('title')))
+})
+
+test('validateRawHwpExpansion handles protocol_version and semantic_groups', () => {
+  // 包含 protocol_version 和 semantic_groups 的有效 payload
+  const v062Payload = {
+    question: 'Test Question',
+    protocol_version: '0.6.2',
+    semantic_groups: [
+      { id: 'group-1', name: 'Group 1', paths: ['path-1'] }
+    ],
+    paths: [
+      { path_id: 'path-1', title: 'Test Path', next_question: 'Next?' }
+    ]
+  }
+  
+  const validation = validateRawHwpExpansion(v062Payload)
+  assert.equal(validation.valid, true)
+  
+  // 验证 protocol_version 被记录为 info
+  const protocolFinding = validation.findings.find(f => f.field === 'protocol_version')
+  assert.ok(protocolFinding)
+  assert.equal(protocolFinding.level, 'info')
+  assert.match(protocolFinding.message, /0\.6\.2/)
+  
+  // 验证 semantic_groups 被记录为 info
+  const groupsFinding = validation.findings.find(f => f.field === 'semantic_groups')
+  assert.ok(groupsFinding)
+  assert.equal(groupsFinding.level, 'info')
+  assert.match(groupsFinding.message, /1 group/)
+})
+
+test('validateRawHwpExpansion handles path-level validation', () => {
+  const payload = {
+    question: 'Test',
+    paths: [
+      { path_id: '1', title: 'Valid Path', next_question: 'Next?', branch_type: 'premise_shift' },
+      { title: 'Missing ID' }, // 缺少 ID
+      { path_id: '3' } // 缺少 title
+    ]
+  }
+  
+  const validation = validateRawHwpExpansion(payload)
+  assert.equal(validation.valid, false)
+  
+  // 验证路径级别的 findings
+  const pathFindings = validation.findings.filter(f => f.field.startsWith('paths['))
+  assert.ok(pathFindings.length > 0)
+  
+  // 第二个路径缺少 ID（warning）
+  assert.ok(pathFindings.some(f => f.field === 'paths[1].id' && f.level === 'warning'))
+  
+  // 第二个路径缺少 next_question（warning）
+  assert.ok(pathFindings.some(f => f.field === 'paths[1].next_question' && f.level === 'warning'))
+  
+  // 第二个路径缺少 branch_type（warning）
+  assert.ok(pathFindings.some(f => f.field === 'paths[1].branch_type' && f.level === 'warning'))
+  
+  // 第三个路径缺少 title（error）
+  assert.ok(pathFindings.some(f => f.field === 'paths[2].title' && f.level === 'error'))
+})
+
+test('summarizeRawHwpValidation produces correct summaries', () => {
+  // 完全有效的验证
+  const validValidation = {
+    valid: true,
+    findings: []
+  }
+  const validSummary = summarizeRawHwpValidation(validValidation)
+  assert.equal(validSummary.valid, true)
+  assert.equal(validSummary.errorCount, 0)
+  assert.equal(validSummary.warningCount, 0)
+  assert.match(validSummary.summaryLine, /valid\.$/)
+  
+  // 有警告的验证
+  const warningValidation = {
+    valid: true,
+    findings: [
+      { level: 'warning', field: 'question', message: 'Missing question' }
+    ]
+  }
+  const warningSummary = summarizeRawHwpValidation(warningValidation)
+  assert.equal(warningSummary.valid, true)
+  assert.equal(warningSummary.errorCount, 0)
+  assert.equal(warningSummary.warningCount, 1)
+  assert.match(warningSummary.summaryLine, /valid with 1 warning/)
+  
+  // 有错误的验证
+  const errorValidation = {
+    valid: false,
+    findings: [
+      { level: 'error', field: 'paths', message: 'Missing paths' },
+      { level: 'warning', field: 'question', message: 'Missing question' }
+    ]
+  }
+  const errorSummary = summarizeRawHwpValidation(errorValidation)
+  assert.equal(errorSummary.valid, false)
+  assert.equal(errorSummary.errorCount, 1)
+  assert.equal(errorSummary.warningCount, 1)
+  assert.match(errorSummary.summaryLine, /invalid with 1 error/)
+  
+  // 空输入
+  const emptySummary = summarizeRawHwpValidation({})
+  assert.equal(emptySummary.valid, false)
+  assert.equal(emptySummary.errorCount, 0)
+  assert.equal(emptySummary.warningCount, 0)
 })
