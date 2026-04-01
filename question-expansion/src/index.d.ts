@@ -44,7 +44,7 @@ export type ConfidenceLevel = 'high' | 'medium' | 'low' | 'exact'
 /**
  * Validation finding severity levels
  */
-export type FindingLevel = 'error' | 'warning'
+export type FindingLevel = 'error' | 'warning' | 'info'
 
 // ==================== Path Types ====================
 
@@ -322,6 +322,8 @@ export interface AuditPayload {
     provider?: string
     model?: string
     session_id?: string
+    protocol_version?: string
+    semantic_groups_count?: number
   }
 }
 
@@ -355,6 +357,8 @@ export interface AuditReport extends ValidationSummary {
   keyTensions: string[]
   pathPreviews: PathPreview[]
   derivedFields: AuditPayload['meta']['derived_fields']
+  protocolVersion: string
+  semanticGroupsCount: number
   meta: Record<string, unknown>
 }
 

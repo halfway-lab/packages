@@ -309,6 +309,22 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
     })
   }
 
+  if (hasAnyField(rawHwp, ['protocol_version'])) {
+    findings.push({
+      level: 'info',
+      field: 'protocol_version',
+      message: 'Detected protocol_version field: ' + String(rawHwp.protocol_version)
+    })
+  }
+
+  if (Array.isArray(rawHwp.semantic_groups)) {
+    findings.push({
+      level: 'info',
+      field: 'semantic_groups',
+      message: `Detected semantic_groups data with ${rawHwp.semantic_groups.length} group(s).`
+    })
+  }
+
   const errors = findings.filter(item => item.level === 'error')
 
   return {
@@ -331,7 +347,18 @@ export function extractRawHwpAuditPayload(input = {}, options = {}) {
   )
 
   if (!looksLikeChainEntry) {
-    return input
+    // For non-chain payloads, still enrich with protocol_version and semantic_groups metadata
+    const sourceMeta = input?.meta && typeof input.meta === 'object' ? input.meta : {}
+    return {
+      ...input,
+      meta: {
+        ...sourceMeta,
+        protocol_version: String(input?.protocol_version || '').trim(),
+        semantic_groups_count: Array.isArray(input?.semantic_groups)
+          ? input.semantic_groups.length
+          : 0
+      }
+    }
   }
 
   const inner = parsedInner || input
@@ -486,6 +513,10 @@ export function extractRawHwpAuditPayload(input = {}, options = {}) {
             session_id: input.meta.agentMeta.sessionId
           }
         : {}),
+      protocol_version: String(inner.protocol_version || '').trim(),
+      semantic_groups_count: Array.isArray(inner.semantic_groups)
+        ? inner.semantic_groups.length
+        : 0,
       ...(inner.meta && typeof inner.meta === 'object' ? inner.meta : {})
     }
   }
@@ -555,6 +586,8 @@ export function buildRawHwpAuditReport(rawHwp = {}, options = {}) {
     keyTensions: (normalized?.keyTensions || []).slice(0, 3),
     pathPreviews,
     derivedFields: auditPayload?.meta?.derived_fields || {},
+    protocolVersion: auditPayload?.meta?.protocol_version || '',
+    semanticGroupsCount: auditPayload?.meta?.semantic_groups_count || 0,
     meta: normalized?.meta || (auditPayload?.meta && typeof auditPayload.meta === 'object' ? auditPayload.meta : {})
   }
 }

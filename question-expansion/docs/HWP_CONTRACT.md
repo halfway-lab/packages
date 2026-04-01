@@ -45,6 +45,18 @@ The package now accepts a raw HWP expansion payload shaped like:
 }
 ```
 
+## HWP v0.6.2 Optional Fields
+
+The following fields are optional and may be present in raw HWP responses from protocol v0.6.2 onwards:
+
+- `protocol_version` (string): HWP protocol version identifier, e.g., "0.6.2"
+- `semantic_groups` (array, optional): Semantic clustering data containing group analysis
+  - Each group includes: `group_id`, `group_name`, `domain`, `nodes`, `coherence_score`, `expansion_path`, `group_metadata`
+- `group_count` (number): Count of semantic groups in the response
+- `cross_domain_contamination` (number): Cross-domain contamination score indicating boundary blur between semantic domains
+
+These fields are informational and do not affect core expansion processing.
+
 ## Audit-Only Live Log Support
 
 For live alignment work, the package also supports extracting an audit payload from a real HWP `chain_*.jsonl` log entry.

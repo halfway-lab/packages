@@ -552,3 +552,77 @@ test('raw HWP audit CLI exits cleanly for valid fixtures and reports invalid fix
     }
   )
 })
+
+test('HWP v0.6.2 compatibility: handles protocol_version and semantic_groups fields', () => {
+  // 测试场景 A：HWP v0.6.2 输出兼容性
+  const v062Payload = {
+    question: '我要不要换工作',
+    protocol_version: '0.6.2',
+    semantic_groups: [
+      { id: 'group-1', name: '职业发展', paths: ['path-1', 'path-2'] },
+      { id: 'group-2', name: '生活平衡', paths: ['path-3'] }
+    ],
+    paths: [
+      {
+        path_id: 'path-1',
+        title: '考虑薪资增长',
+        summary: '评估当前薪资与市场的对比',
+        follow_up_question: '薪资增长对你的重要性？',
+        path_type: 'variable_temporal'
+      },
+      {
+        path_id: 'path-2',
+        title: '工作环境改善',
+        summary: '团队氛围和管理风格的影响',
+        follow_up_question: '理想的工作环境是什么？',
+        path_type: 'context_link'
+      }
+    ]
+  }
+
+  const validation = validateRawHwpExpansion(v062Payload)
+  assert.equal(validation.valid, true, 'v0.6.2 payload should be valid')
+  assert.ok(
+    validation.findings.some(f => f.level === 'info' && f.field === 'protocol_version'),
+    'should have info finding for protocol_version'
+  )
+  assert.ok(
+    validation.findings.some(f => f.level === 'info' && f.field === 'semantic_groups'),
+    'should have info finding for semantic_groups'
+  )
+
+  // 测试场景 B：旧版本向后兼容
+  const legacyPayload = {
+    question: '我要不要换工作',
+    paths: [
+      {
+        path_id: 'legacy-path-1',
+        title: '传统路径',
+        summary: '没有新字段的旧格式',
+        follow_up_question: '下一步是什么？',
+        path_type: 'premise_shift'
+      }
+    ]
+  }
+
+  const legacyValidation = validateRawHwpExpansion(legacyPayload)
+  assert.equal(legacyValidation.valid, true, 'legacy payload without new fields should still be valid')
+  assert.ok(
+    !legacyValidation.findings.some(f => f.field === 'protocol_version'),
+    'should not have protocol_version finding for legacy payload'
+  )
+  assert.ok(
+    !legacyValidation.findings.some(f => f.field === 'semantic_groups'),
+    'should not have semantic_groups finding for legacy payload'
+  )
+
+  // 测试场景 C：审计报告新字段
+  const auditReport = buildRawHwpAuditReport(v062Payload)
+  assert.equal(auditReport.protocolVersion, '0.6.2', 'audit report should include protocolVersion')
+  assert.equal(auditReport.semanticGroupsCount, 2, 'audit report should include semanticGroupsCount')
+  assert.equal(auditReport.valid, true, 'audit report should mark v0.6.2 payload as valid')
+
+  const legacyAuditReport = buildRawHwpAuditReport(legacyPayload)
+  assert.equal(legacyAuditReport.protocolVersion, '', 'legacy payload should have empty protocolVersion')
+  assert.equal(legacyAuditReport.semanticGroupsCount, 0, 'legacy payload should have 0 semanticGroupsCount')
+})
