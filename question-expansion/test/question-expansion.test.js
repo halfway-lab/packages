@@ -26,7 +26,11 @@ import {
   normalizeRawHwpPath,
   summarizeRawHwpValidation,
   validateRawHwpExpansion,
-  normalizeExpansionResponse
+  normalizeExpansionResponse,
+  resolveProtocolSchema,
+  registerProtocolVersion,
+  getSupportedProtocolVersions,
+  getProtocolCompatibility
 } from '../src/index.js'
 
 // Import utils modules directly for testing
@@ -1092,4 +1096,173 @@ test('summarizeRawHwpValidation produces correct summaries', () => {
   assert.equal(emptySummary.valid, false)
   assert.equal(emptySummary.errorCount, 0)
   assert.equal(emptySummary.warningCount, 0)
+})
+
+// ============================================================================
+// Protocol Version Registry and Version-Aware Validation Tests
+// ============================================================================
+
+test('protocol version registry and version-aware validation', () => {
+  // ============================================
+  // A. 注册表基础功能
+  // ============================================
+
+  // getSupportedProtocolVersions() 返回包含 'legacy' 和 '0.6.2' 的数组
+  const supportedVersions = getSupportedProtocolVersions()
+  assert.ok(Array.isArray(supportedVersions), 'should return an array')
+  assert.ok(supportedVersions.includes('legacy'), 'should include legacy')
+  assert.ok(supportedVersions.includes('0.6.2'), 'should include 0.6.2')
+  assert.equal(supportedVersions[0], '0.6.2', 'latest version should be first')
+
+  // getProtocolCompatibility('0.6.2') 返回 { status: 'exact', ... }
+  const exactCompatibility = getProtocolCompatibility('0.6.2')
+  assert.equal(exactCompatibility.status, 'exact')
+  assert.equal(exactCompatibility.resolvedVersion, '0.6.2')
+
+  // getProtocolCompatibility('0.7.0') 返回 { status: 'fallback', ... }
+  const fallbackCompatibility = getProtocolCompatibility('0.7.0')
+  assert.equal(fallbackCompatibility.status, 'fallback')
+  assert.equal(fallbackCompatibility.resolvedVersion, '0.6.2')
+
+  // getProtocolCompatibility(undefined) 返回 { status: 'legacy', ... }
+  const legacyCompatibility = getProtocolCompatibility(undefined)
+  assert.equal(legacyCompatibility.status, 'legacy')
+  assert.equal(legacyCompatibility.resolvedVersion, 'legacy')
+
+  // ============================================
+  // B. resolveProtocolSchema
+  // ============================================
+
+  // 传入 '0.6.2' 返回 v0.6.2 schema
+  const v062Schema = resolveProtocolSchema('0.6.2')
+  assert.equal(v062Schema.version, '0.6.2')
+  assert.ok(v062Schema.fieldAliases.semantic_groups, 'v0.6.2 schema should include semantic_groups')
+  assert.ok(!v062Schema._fallback, 'exact match should not have _fallback')
+
+  // 传入 undefined 返回 legacy schema
+  const legacySchema = resolveProtocolSchema(undefined)
+  assert.equal(legacySchema.version, 'legacy')
+  assert.ok(!legacySchema.fieldAliases.semantic_groups, 'legacy schema should not include semantic_groups')
+  assert.ok(!legacySchema._fallback, 'legacy should not have _fallback')
+
+  // 传入未知版本返回带 _fallback 标记的 schema
+  const unknownSchema = resolveProtocolSchema('0.9.0')
+  assert.ok(unknownSchema._fallback, 'unknown version should have _fallback')
+  assert.equal(unknownSchema._requestedVersion, '0.9.0')
+  assert.equal(unknownSchema.version, '0.6.2', 'should fallback to latest known version')
+
+  // ============================================
+  // C. registerProtocolVersion
+  // ============================================
+
+  // 注册新版本后 getSupportedProtocolVersions 包含该版本
+  registerProtocolVersion('0.7.0', {
+    fieldAliases: {
+      id: ['id'],
+      path_title: ['title']
+    },
+    requiredFields: ['paths'],
+    optionalFields: ['new_feature'],
+    pathRequiredFields: ['path_title'],
+    features: {
+      semanticGroups: true,
+      protocolVersion: true
+    }
+  })
+
+  const updatedVersions = getSupportedProtocolVersions()
+  assert.ok(updatedVersions.includes('0.7.0'), 'should include newly registered version')
+  assert.equal(updatedVersions[0], '0.7.0', 'newer version should be first')
+
+  // 解析新版本返回注册的 schema
+  const newSchema = resolveProtocolSchema('0.7.0')
+  assert.equal(newSchema.version, '0.7.0')
+  assert.ok(!newSchema._fallback, 'registered version should not fallback')
+  assert.equal(newSchema.features.semanticGroups, true)
+  assert.equal(newSchema.features.protocolVersion, true)
+
+  // ============================================
+  // D. 版本感知验证
+  // ============================================
+
+  // 传入 protocol_version: '0.6.2' 的数据，validateRawHwpExpansion 正确使用 v0.6.2 schema
+  const v062Payload = {
+    question: 'Test Question',
+    protocol_version: '0.6.2',
+    paths: [
+      { path_id: 'path-1', title: 'Test Path', next_question: 'Next?' }
+    ]
+  }
+
+  const v062Validation = validateRawHwpExpansion(v062Payload)
+  assert.equal(v062Validation.valid, true)
+  const protocolFinding = v062Validation.findings.find(f => f.field === 'protocol_version')
+  assert.ok(protocolFinding, 'should have protocol_version finding')
+  assert.equal(protocolFinding.level, 'info')
+  assert.match(protocolFinding.message, /0\.6\.2/)
+  assert.ok(!protocolFinding.message.includes('[fallback]'), 'exact match should not have fallback marker')
+
+  // 传入未知 protocol_version 的数据，findings 中包含 warning 级别的回退提示
+  const unknownVersionPayload = {
+    question: 'Test Question',
+    protocol_version: '0.99.0',
+    paths: [
+      { path_id: 'path-1', title: 'Test Path', next_question: 'Next?' }
+    ]
+  }
+
+  const unknownVersionValidation = validateRawHwpExpansion(unknownVersionPayload)
+  assert.equal(unknownVersionValidation.valid, true)
+  const fallbackWarning = unknownVersionValidation.findings.find(
+    f => f.field === 'protocol_version' && f.level === 'warning'
+  )
+  assert.ok(fallbackWarning, 'should have warning for unknown version')
+  assert.ok(fallbackWarning.message.toLowerCase().includes('falling back'), 'warning message should mention falling back')
+
+  // 传入包含未知字段的数据，findings 中包含 info 级别的提示
+  const unknownFieldPayload = {
+    question: 'Test Question',
+    protocol_version: '0.6.2',
+    unknown_new_field: 'some value',
+    paths: [
+      { path_id: 'path-1', title: 'Test Path', next_question: 'Next?' }
+    ]
+  }
+
+  const unknownFieldValidation = validateRawHwpExpansion(unknownFieldPayload)
+  const unknownFieldFinding = unknownFieldValidation.findings.find(f => f.field === 'unknown_new_field')
+  assert.ok(unknownFieldFinding, 'should have info finding for unknown field')
+  assert.equal(unknownFieldFinding.level, 'info')
+  assert.match(unknownFieldFinding.message, /Unknown field/i)
+
+  // ============================================
+  // E. 版本感知规范化
+  // ============================================
+
+  // normalizeRawHwpExpansion 处理带 protocol_version 的数据时，meta 中包含 protocolCompatibility 信息
+  const fallbackPayload = {
+    question: 'Test Question',
+    protocol_version: '0.99.0',
+    paths: [
+      { path_id: 'path-1', title: 'Test Path', next_question: 'Next?' }
+    ]
+  }
+
+  const normalizedWithFallback = normalizeRawHwpExpansion(fallbackPayload)
+  assert.ok(normalizedWithFallback.meta.protocolCompatibility, 'should include protocolCompatibility in meta')
+  assert.equal(normalizedWithFallback.meta.protocolCompatibility.status, 'fallback')
+  assert.equal(normalizedWithFallback.meta.protocolCompatibility.requestedVersion, '0.99.0')
+  assert.equal(normalizedWithFallback.meta.protocolCompatibility.resolvedVersion, '0.7.0')
+
+  // 精确匹配时不应包含 protocolCompatibility
+  const exactPayload = {
+    question: 'Test Question',
+    protocol_version: '0.6.2',
+    paths: [
+      { path_id: 'path-1', title: 'Test Path', next_question: 'Next?' }
+    ]
+  }
+
+  const normalizedExact = normalizeRawHwpExpansion(exactPayload)
+  assert.ok(!normalizedExact.meta.protocolCompatibility, 'exact match should not include protocolCompatibility')
 })

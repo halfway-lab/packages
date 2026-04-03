@@ -57,6 +57,32 @@ The following fields are optional and may be present in raw HWP responses from p
 
 These fields are informational and do not affect core expansion processing.
 
+## Protocol Version Awareness
+
+The package now supports automatic schema selection based on the `protocol_version` field in raw HWP responses:
+
+- **Version Detection**: When `protocol_version` is present in the payload, the package automatically selects the matching validation schema
+- **Built-in Support**: The package includes built-in schemas for `legacy` (no version) and `0.6.2` protocol versions
+- **Extensibility**: Use `registerProtocolVersion(version, schemaConfig)` to add support for new protocol versions at runtime
+- **Fallback Mechanism**: Unknown versions automatically fall back to the latest known version with a warning, ensuring forward compatibility
+
+Example usage:
+
+```javascript
+import { registerProtocolVersion, getSupportedProtocolVersions } from '@halfway-lab/question-expansion'
+
+// Register a new protocol version
+registerProtocolVersion('0.7.0', {
+  fieldAliases: { /* ... */ },
+  requiredFields: ['paths'],
+  optionalFields: ['new_feature'],
+  features: { semanticGroups: true, protocolVersion: true }
+})
+
+// Check supported versions
+console.log(getSupportedProtocolVersions()) // ['0.7.0', '0.6.2', 'legacy']
+```
+
 ## Audit-Only Live Log Support
 
 For live alignment work, the package also supports extracting an audit payload from a real HWP `chain_*.jsonl` log entry.

@@ -39,6 +39,14 @@ export {
   summarizeRawHwpValidation
 } from './contracts/rawHwpValidation.js'
 
+// Protocol Registry
+export {
+  resolveProtocolSchema,
+  registerProtocolVersion,
+  getSupportedProtocolVersions,
+  getProtocolCompatibility
+} from './contracts/protocolRegistry.js'
+
 // Raw HWP Audit
 export {
   extractRawHwpAuditPayload,

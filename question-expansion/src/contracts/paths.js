@@ -1,4 +1,4 @@
-import { pickStringField, pickNumberField, FIELD_ALIASES } from '../utils/fieldHelpers.js'
+import { pickStringField, pickNumberField, FIELD_ALIASES, pickFieldWithSchema } from '../utils/fieldHelpers.js'
 import { PATH_DEFAULTS } from '../constants.js'
 
 /**
@@ -70,6 +70,7 @@ function dedupePathIds(paths = []) {
  * @param {number} [options.level] - Override level
  * @param {string} [options.timestamp] - Override timestamp
  * @param {string} [options.idSeed='path'] - Seed for fallback ID
+ * @param {Object} [options.schema] - Protocol schema for field extraction
  * @returns {NormalizedPath} Normalized path object
  *
  * @example
@@ -81,36 +82,37 @@ function dedupePathIds(paths = []) {
  */
 export function normalizeExpansionPath(rawPath = {}, options = {}) {
   const index = Number(options.index || 0)
-  const level = Number(options.level || pickNumberField(rawPath, 'level', PATH_DEFAULTS.LEVEL))
+  const schema = options.schema || null
+  const level = Number(options.level || pickNumberField(rawPath, 'level', schema, PATH_DEFAULTS.LEVEL))
   const timestamp = options.timestamp || new Date().toISOString()
   const idSeed = options.idSeed || PATH_DEFAULTS.ID_SEED
 
+  // 如果有 schema，使用 schema 的 fieldAliases，否则使用硬编码的 FIELD_ALIASES
+  const getField = (fieldName, defaultValue) => {
+    if (schema) {
+      return pickFieldWithSchema(rawPath, fieldName, schema, defaultValue)
+    }
+    // 无 schema 时，根据字段类型选择适当的函数
+    if (fieldName === 'unfinished_score' || fieldName === 'level') {
+      return pickNumberField(rawPath, fieldName, defaultValue)
+    }
+    return pickStringField(rawPath, fieldName, defaultValue)
+  }
+
   return {
-    id: String(pickStringField(rawPath, 'id') || buildFallbackId(idSeed, level, index)),
-    path_title: pickStringField(rawPath, 'path_title', PATH_DEFAULTS.PATH_TITLE(index)),
-    path_summary: pickStringField(
-      rawPath,
-      'path_summary',
-      PATH_DEFAULTS.PATH_SUMMARY
-    ),
-    next_question: pickStringField(
-      rawPath,
-      'next_question',
-      PATH_DEFAULTS.NEXT_QUESTION
-    ),
-    branch_type: pickStringField(rawPath, 'branch_type', PATH_DEFAULTS.BRANCH_TYPE) || PATH_DEFAULTS.BRANCH_TYPE,
+    id: String(getField('id') || buildFallbackId(idSeed, level, index)),
+    path_title: getField('path_title', PATH_DEFAULTS.PATH_TITLE(index)),
+    path_summary: getField('path_summary', PATH_DEFAULTS.PATH_SUMMARY),
+    next_question: getField('next_question', PATH_DEFAULTS.NEXT_QUESTION),
+    branch_type: getField('branch_type', PATH_DEFAULTS.BRANCH_TYPE) || PATH_DEFAULTS.BRANCH_TYPE,
     unfinished_score: clampUnfinishedScore(
-      pickNumberField(rawPath, 'unfinished_score'),
+      pickNumberField(rawPath, 'unfinished_score', schema),
       PATH_DEFAULTS.UNFINISHED_SCORE
     ),
-    blind_spot_hint: pickStringField(
-      rawPath,
-      'blind_spot_hint',
-      PATH_DEFAULTS.BLIND_SPOT_HINT
-    ),
+    blind_spot_hint: getField('blind_spot_hint', PATH_DEFAULTS.BLIND_SPOT_HINT),
     level,
     tags: Array.isArray(rawPath.tags) ? rawPath.tags.filter(Boolean) : [],
-    created_at: pickStringField(rawPath, 'created_at', timestamp)
+    created_at: getField('created_at', timestamp)
   }
 }
 
@@ -124,6 +126,7 @@ export function normalizeExpansionPath(rawPath = {}, options = {}) {
  * @param {number} [options.level] - Default level for paths
  * @param {string} [options.timestamp] - Default timestamp
  * @param {string} [options.idSeed] - Seed for fallback IDs
+ * @param {Object} [options.schema] - Protocol schema for field extraction
  * @returns {NormalizedPath[]} Array of normalized paths
  * @throws {Error} If response does not contain a paths array
  * @throws {Error} If paths array is empty and allowEmpty is false

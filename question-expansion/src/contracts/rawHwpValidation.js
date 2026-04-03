@@ -1,5 +1,6 @@
 import { normalizeRawHwpExpansion } from './rawHwp.js'
-import { hasAnyField } from '../utils/fieldHelpers.js'
+import { hasAnyField, pickFieldWithSchema } from '../utils/fieldHelpers.js'
+import { resolveProtocolSchema } from './protocolRegistry.js'
 
 /**
  * Validate a raw HWP expansion payload.
@@ -17,9 +18,29 @@ import { hasAnyField } from '../utils/fieldHelpers.js'
  */
 export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
   const findings = []
+
+  // 检测 protocol_version 并解析对应的 schema
+  const protocolVersion = pickFieldWithSchema(rawHwp, 'protocol_version', null, null)
+  const schema = resolveProtocolSchema(protocolVersion)
+
+  // 使用 schema 的 fieldAliases 构建字段检查列表
   const rawPaths = Array.isArray(rawHwp)
     ? rawHwp
-    : (rawHwp.paths || rawHwp.expansion_paths || [])
+    : (pickFieldWithSchema(rawHwp, 'paths', schema, null) || [])
+
+  // 验证根级必填字段（使用 schema.requiredFields）
+  const requiredFields = schema.requiredFields || ['paths']
+  for (const field of requiredFields) {
+    const value = pickFieldWithSchema(rawHwp, field, schema, null)
+    if (value === null || value === undefined ||
+        (Array.isArray(value) && value.length === 0)) {
+      findings.push({
+        level: 'error',
+        field,
+        message: `Missing required field: ${field}`
+      })
+    }
+  }
 
   if (!Array.isArray(rawPaths)) {
     findings.push({
@@ -35,7 +56,9 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
     })
   }
 
-  if (!hasAnyField(rawHwp, ['question', 'core_question', 'coreQuestion']) && !options.question) {
+  // 检查核心问题字段（使用 schema 的 fieldAliases）
+  const coreQuestionValue = pickFieldWithSchema(rawHwp, 'core_question', schema, null)
+  if (!coreQuestionValue && !options.question) {
     findings.push({
       level: 'warning',
       field: 'question',
@@ -43,9 +66,13 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
     })
   }
 
+  // 验证路径级字段（使用 schema.pathRequiredFields）
+  const pathRequiredFields = schema.pathRequiredFields || ['path_title', 'title', 'pathTitle']
   if (Array.isArray(rawPaths)) {
     rawPaths.forEach((path, index) => {
-      if (!hasAnyField(path, ['id', 'path_id', 'pathId'])) {
+      // 检查路径 ID
+      const pathId = pickFieldWithSchema(path, 'id', schema, null)
+      if (!pathId) {
         findings.push({
           level: 'warning',
           field: `paths[${index}].id`,
@@ -53,15 +80,23 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
         })
       }
 
-      if (!hasAnyField(path, ['title', 'path_title', 'pathTitle'])) {
-        findings.push({
-          level: 'error',
-          field: `paths[${index}].title`,
-          message: 'Path is missing title/path_title.'
-        })
+      // 检查路径级必填字段
+      for (const field of pathRequiredFields) {
+        const aliases = schema.fieldAliases?.[field] || [field]
+        if (!hasAnyField(path, aliases)) {
+          // 使用 'title' 作为报告字段名（如果可用），保持与现有测试的兼容性
+          const reportField = aliases.includes('title') ? 'title' : (aliases[0] || field)
+          findings.push({
+            level: 'error',
+            field: `paths[${index}].${reportField}`,
+            message: `Path is missing ${reportField}.`
+          })
+        }
       }
 
-      if (!hasAnyField(path, ['next_question', 'nextQuestion', 'follow_up_question'])) {
+      // 检查其他可选字段（使用 schema.fieldAliases）
+      const nextQuestion = pickFieldWithSchema(path, 'next_question', schema, null)
+      if (!nextQuestion) {
         findings.push({
           level: 'warning',
           field: `paths[${index}].next_question`,
@@ -69,7 +104,8 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
         })
       }
 
-      if (!hasAnyField(path, ['branch_type', 'branchType', 'path_type'])) {
+      const branchType = pickFieldWithSchema(path, 'branch_type', schema, null)
+      if (!branchType) {
         findings.push({
           level: 'warning',
           field: `paths[${index}].branch_type`,
@@ -79,19 +115,57 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
     })
   }
 
-  if (hasAnyField(rawHwp, ['protocol_version'])) {
+  // 协议版本信息
+  if (protocolVersion) {
     findings.push({
       level: 'info',
       field: 'protocol_version',
-      message: 'Detected protocol_version field: ' + String(rawHwp.protocol_version)
+      message: `Detected protocol_version field: ${protocolVersion} (resolved to ${schema.version}${schema._fallback ? ' [fallback]' : ''})`
+    })
+
+    // 版本回退警告
+    if (schema._fallback) {
+      findings.push({
+        level: 'warning',
+        field: 'protocol_version',
+        message: `Protocol version '${protocolVersion}' is not explicitly supported. Falling back to version '${schema.version}'. Some fields may not be correctly validated.`
+      })
+    }
+  }
+
+  // 检测未知字段（顶层字段不在 schema 的 requiredFields 或 optionalFields 中）
+  const allKnownFields = new Set([
+    ...(schema.requiredFields || []),
+    ...(schema.optionalFields || [])
+  ])
+
+  // 添加 schema.fieldAliases 中的所有别名到已知字段集合
+  if (schema.fieldAliases) {
+    Object.values(schema.fieldAliases).forEach(aliases => {
+      aliases.forEach(alias => allKnownFields.add(alias))
     })
   }
 
-  if (Array.isArray(rawHwp.semantic_groups)) {
+  // 检查顶层字段
+  if (rawHwp && typeof rawHwp === 'object' && !Array.isArray(rawHwp)) {
+    Object.keys(rawHwp).forEach(fieldName => {
+      if (!allKnownFields.has(fieldName)) {
+        findings.push({
+          level: 'info',
+          field: fieldName,
+          message: `Unknown field '${fieldName}' detected. This may be a new HWP feature not yet supported by this package version.`
+        })
+      }
+    })
+  }
+
+  // 语义组信息（如果 schema 支持）
+  const semanticGroups = pickFieldWithSchema(rawHwp, 'semantic_groups', schema, null)
+  if (Array.isArray(semanticGroups)) {
     findings.push({
       level: 'info',
       field: 'semantic_groups',
-      message: `Detected semantic_groups data with ${rawHwp.semantic_groups.length} group(s).`
+      message: `Detected semantic_groups data with ${semanticGroups.length} group(s).`
     })
   }
 

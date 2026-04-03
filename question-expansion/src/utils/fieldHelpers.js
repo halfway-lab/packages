@@ -6,6 +6,16 @@
  */
 
 /**
+ * @typedef {Object} ProtocolSchema
+ * @property {string} version - 协议版本号
+ * @property {Object.<string, string[]>} fieldAliases - 字段别名映射表
+ * @property {string[]} requiredFields - 根级必填字段列表
+ * @property {string[]} optionalFields - 根级可选字段列表
+ * @property {string[]} pathRequiredFields - 路径级必填字段列表
+ * @property {Object} features - 功能特性开关
+ */
+
+/**
  * 字段别名映射配置
  * 定义各字段在不同格式中可能出现的别名
  */
@@ -70,6 +80,35 @@ export const FIELD_ALIASES = {
  */
 export function pickField(obj = {}, fieldName, defaultValue) {
   const aliases = FIELD_ALIASES[fieldName] || [fieldName]
+
+  for (const alias of aliases) {
+    const value = obj?.[alias]
+    if (value !== undefined && value !== null && value !== '') {
+      return value
+    }
+  }
+
+  return defaultValue
+}
+
+/**
+ * 使用 schema 从对象中提取指定字段的第一个有效值（按别名优先级）
+ *
+ * @param {Object} obj - 源对象
+ * @param {string} fieldName - 字段名（schema.fieldAliases 中的键）
+ * @param {ProtocolSchema} [schema] - 协议 schema，如果未提供则使用 FIELD_ALIASES
+ * @param {*} [defaultValue] - 默认值
+ * @returns {*} 提取的值或默认值
+ *
+ * @example
+ * pickFieldWithSchema({ title: 'Test', path_title: 'Path' }, 'path_title', schema)
+ * // => 'Path' (优先使用 schema 中的别名)
+ *
+ * pickFieldWithSchema({ title: 'Test' }, 'path_title', null, 'default')
+ * // => 'default' (无 schema 时回退到 FIELD_ALIASES)
+ */
+export function pickFieldWithSchema(obj = {}, fieldName, schema, defaultValue) {
+  const aliases = schema?.fieldAliases?.[fieldName] || FIELD_ALIASES[fieldName] || [fieldName]
 
   for (const alias of aliases) {
     const value = obj?.[alias]
@@ -148,18 +187,32 @@ export function hasAnyField(obj, fields = []) {
  *
  * @param {Object} obj - 源对象
  * @param {string} fieldName - 字段名（FIELD_ALIASES 中的键）
- * @param {string} [defaultValue=''] - 默认值
+ * @param {string|ProtocolSchema} [defaultValueOrSchema=''] - 默认值或 schema 对象
+ * @param {string} [defaultValue=''] - 默认值（当第二个参数是 schema 时使用）
  * @returns {string} 提取并 trim 后的字符串值
  *
  * @example
  * pickStringField({ title: '  Test  ' }, 'path_title')
  * // => 'Test'
+ *
+ * pickStringField({ title: '  Test  ' }, 'path_title', schema)
+ * // => 'Test' (使用 schema 中的别名)
+ *
+ * pickStringField({ title: '  Test  ' }, 'path_title', schema, 'default')
+ * // => 'Test' (使用 schema 和自定义默认值)
  */
-export function pickStringField(obj = {}, fieldName, defaultValue = '') {
-  const value = pickField(obj, fieldName)
+export function pickStringField(obj = {}, fieldName, defaultValueOrSchema = '', defaultValue = '') {
+  // 检测第二个参数是否是 schema 对象
+  const isSchema = defaultValueOrSchema && typeof defaultValueOrSchema === 'object' &&
+    (defaultValueOrSchema.fieldAliases || defaultValueOrSchema.version)
+
+  const schema = isSchema ? defaultValueOrSchema : null
+  const finalDefaultValue = isSchema ? defaultValue : defaultValueOrSchema
+
+  const value = schema ? pickFieldWithSchema(obj, fieldName, schema) : pickField(obj, fieldName)
   return value !== undefined && value !== null
     ? String(value).trim()
-    : defaultValue
+    : finalDefaultValue
 }
 
 /**
@@ -167,15 +220,30 @@ export function pickStringField(obj = {}, fieldName, defaultValue = '') {
  *
  * @param {Object} obj - 源对象
  * @param {string} fieldName - 字段名（FIELD_ALIASES 中的键）
- * @param {number} [defaultValue] - 默认值
+ * @param {number|ProtocolSchema} [defaultValueOrSchema] - 默认值或 schema 对象
+ * @param {number} [defaultValue] - 默认值（当第二个参数是 schema 时使用）
  * @returns {number|undefined} 提取的数值或默认值
+ *
+ * @example
+ * pickNumberField({ level: 2 }, 'level')
+ * // => 2
+ *
+ * pickNumberField({ level: 2 }, 'level', schema)
+ * // => 2 (使用 schema 中的别名)
  */
-export function pickNumberField(obj = {}, fieldName, defaultValue) {
-  const value = pickField(obj, fieldName)
+export function pickNumberField(obj = {}, fieldName, defaultValueOrSchema, defaultValue) {
+  // 检测第二个参数是否是 schema 对象
+  const isSchema = defaultValueOrSchema && typeof defaultValueOrSchema === 'object' &&
+    (defaultValueOrSchema.fieldAliases || defaultValueOrSchema.version)
+
+  const schema = isSchema ? defaultValueOrSchema : null
+  const finalDefaultValue = isSchema ? defaultValue : defaultValueOrSchema
+
+  const value = schema ? pickFieldWithSchema(obj, fieldName, schema) : pickField(obj, fieldName)
 
   if (typeof value === 'number' && !Number.isNaN(value)) {
     return value
   }
 
-  return defaultValue
+  return finalDefaultValue
 }

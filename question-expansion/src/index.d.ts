@@ -521,6 +521,40 @@ export interface StatusInfo {
   provider?: string
 }
 
+// ==================== Protocol Registry Types ====================
+
+/**
+ * Protocol schema definition for version-aware validation
+ */
+export interface ProtocolSchema {
+  /** Protocol version identifier */
+  version: string
+  /** Field alias mappings */
+  fieldAliases: Record<string, string[]>
+  /** Root-level required fields */
+  requiredFields: string[]
+  /** Root-level optional fields */
+  optionalFields: string[]
+  /** Path-level required fields */
+  pathRequiredFields: string[]
+  /** Feature flags */
+  features: Record<string, boolean>
+  /** Fallback marker for unknown versions */
+  _fallback?: boolean
+}
+
+/**
+ * Protocol compatibility information
+ */
+export interface ProtocolCompatibility {
+  /** Compatibility status */
+  status: 'exact' | 'fallback' | 'legacy'
+  /** Resolved version identifier */
+  resolvedVersion: string
+  /** Requested version identifier */
+  requestedVersion?: string
+}
+
 // ==================== Constants ====================
 
 /**
@@ -799,3 +833,9 @@ export function buildChildParentMap(parentId: string | number, children: Array<{
 
 // Status
 export function buildStatusMessage(info?: StatusInfo): string
+
+// Protocol Registry
+export function resolveProtocolSchema(protocolVersion?: string): ProtocolSchema
+export function registerProtocolVersion(version: string, schemaConfig: Partial<ProtocolSchema>): void
+export function getSupportedProtocolVersions(): string[]
+export function getProtocolCompatibility(version?: string): ProtocolCompatibility

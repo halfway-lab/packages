@@ -1,7 +1,8 @@
 import { normalizeExpansionPath } from './paths.js'
 import { buildStructuredOverview } from '../overview/structuredOverview.js'
-import { toArray } from '../utils/fieldHelpers.js'
+import { toArray, pickFieldWithSchema } from '../utils/fieldHelpers.js'
 import { RAW_HWP_DEFAULTS } from '../constants.js'
+import { resolveProtocolSchema } from './protocolRegistry.js'
 
 /**
  * Build a raw HWP expand request payload.
@@ -77,6 +78,7 @@ export function buildRawHwpExpandRequest(payload = {}) {
  *
  * @param {RawHwpPath} rawPath - Raw HWP path data
  * @param {NormalizeOptions} options - Normalization options
+ * @param {Object} [options.schema] - Protocol schema for field extraction
  * @returns {NormalizedPath & {tensions: string[], source: string}} Normalized path with tensions
  *
  * @example
@@ -88,23 +90,26 @@ export function buildRawHwpExpandRequest(payload = {}) {
  * // => { id: '1', path_title: 'Analysis', tensions: ['Key tension'], source: 'raw_hwp', ... }
  */
 export function normalizeRawHwpPath(rawPath = {}, options = {}) {
-  const normalizedTags = toArray(rawPath.tags || rawPath.labels)
+  const schema = options.schema || null
+
+  const normalizedTags = toArray(
+    pickFieldWithSchema(rawPath, 'tags', schema, null) || []
+  )
   const normalizedTensions = toArray(
     rawPath.tensions ||
-    rawPath.key_tensions ||
-    rawPath.keyTensions
+    pickFieldWithSchema(rawPath, 'key_tensions', schema, null)
   )
 
   return {
     ...normalizeExpansionPath({
-      id: rawPath.id || rawPath.path_id || rawPath.pathId,
-      path_title: rawPath.path_title || rawPath.title || rawPath.pathTitle,
-      path_summary: rawPath.path_summary || rawPath.summary || rawPath.pathSummary,
-      next_question: rawPath.next_question || rawPath.nextQuestion || rawPath.follow_up_question,
-      branch_type: rawPath.branch_type || rawPath.branchType || rawPath.path_type,
-      unfinished_score: rawPath.unfinished_score ?? rawPath.unfinishedScore ?? rawPath.open_score,
-      blind_spot_hint: rawPath.blind_spot_hint || rawPath.blindSpotHint || rawPath.risk_hint,
-      created_at: rawPath.created_at || rawPath.createdAt,
+      id: pickFieldWithSchema(rawPath, 'id', schema, null),
+      path_title: pickFieldWithSchema(rawPath, 'path_title', schema, null),
+      path_summary: pickFieldWithSchema(rawPath, 'path_summary', schema, null),
+      next_question: pickFieldWithSchema(rawPath, 'next_question', schema, null),
+      branch_type: pickFieldWithSchema(rawPath, 'branch_type', schema, null),
+      unfinished_score: pickFieldWithSchema(rawPath, 'unfinished_score', schema, null),
+      blind_spot_hint: pickFieldWithSchema(rawPath, 'blind_spot_hint', schema, null),
+      created_at: pickFieldWithSchema(rawPath, 'created_at', schema, null),
       level: rawPath.level ?? rawPath.depth ?? options.level,
       tags: normalizedTags
     }, options),
@@ -129,7 +134,13 @@ export function normalizeRawHwpPath(rawPath = {}, options = {}) {
  * // => { question: 'How do we improve?', expansionPaths: [...], ... }
  */
 export function normalizeRawHwpExpansion(rawHwp = {}, options = {}) {
-  const rawPaths = Array.isArray(rawHwp) ? rawHwp : (rawHwp.paths || rawHwp.expansion_paths || [])
+  // 检测 protocol_version 并解析对应的 schema
+  const protocolVersion = pickFieldWithSchema(rawHwp, 'protocol_version', null, null)
+  const schema = resolveProtocolSchema(protocolVersion)
+
+  const rawPaths = Array.isArray(rawHwp)
+    ? rawHwp
+    : (pickFieldWithSchema(rawHwp, 'paths', schema, null) || [])
 
   if (!Array.isArray(rawPaths)) {
     throw new Error('Raw HWP response did not contain a paths array')
@@ -139,33 +150,48 @@ export function normalizeRawHwpExpansion(rawHwp = {}, options = {}) {
     .filter(Boolean)
     .map((path, index) => normalizeRawHwpPath(path, {
       ...options,
-      index
+      index,
+      schema
     }))
 
   if (options.allowEmpty !== true && expansionPaths.length === 0) {
     throw new Error('Raw HWP response contained an empty paths array')
   }
 
+  // 优先使用直接的 question 字段，然后是 core_question 别名，最后是 options.question
   const question = String(
     rawHwp.question ||
-    rawHwp.core_question ||
-    rawHwp.coreQuestion ||
+    pickFieldWithSchema(rawHwp, 'core_question', schema, null) ||
     options.question ||
     ''
   ).trim()
-  const keyTensions = toArray(rawHwp.key_tensions || rawHwp.keyTensions)
-  const nextQuestions = toArray(rawHwp.next_questions || rawHwp.nextQuestions)
+  const keyTensions = toArray(
+    pickFieldWithSchema(rawHwp, 'key_tensions', schema, null)
+  )
+  const nextQuestions = toArray(
+    pickFieldWithSchema(rawHwp, 'next_questions', schema, null)
+  )
+
+  // 构建 meta 信息，如果 schema 是回退的则记录
+  const meta = rawHwp.meta && typeof rawHwp.meta === 'object' ? { ...rawHwp.meta } : {}
+  if (schema._fallback) {
+    meta.protocolCompatibility = {
+      status: 'fallback',
+      requestedVersion: schema._requestedVersion,
+      resolvedVersion: schema.version
+    }
+  }
 
   return {
     question,
     expansionPaths,
-    coreQuestion: String(rawHwp.core_question || rawHwp.coreQuestion || '').trim(),
+    coreQuestion: String(pickFieldWithSchema(rawHwp, 'core_question', schema, '')).trim(),
     keyTensions: keyTensions.length > 0
       ? keyTensions
       : buildStructuredOverview(question, expansionPaths).keyTensions,
     nextQuestions: nextQuestions.length > 0
       ? nextQuestions
       : buildStructuredOverview(question, expansionPaths).nextQuestions,
-    meta: rawHwp.meta && typeof rawHwp.meta === 'object' ? rawHwp.meta : {}
+    meta
   }
 }
