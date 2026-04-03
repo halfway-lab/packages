@@ -1,32 +1,61 @@
-# Halfway-Lab Packages
+# @halfway-lab/packages
 
-This directory is the source-of-truth home for reusable packages in the current Halfway-Lab workspace.
+Monorepo for shared packages maintained by Halfway-Lab.
 
-## Current Rule
+## Packages
 
-- reusable package code lives in `/Users/mac/Documents/Halfway-Lab/packages`
-- protocol-core code lives in `/Users/mac/Documents/Halfway-Lab/protocol/HWP`
-- app code lives in `/Users/mac/Documents/Halfway-Lab/apps`
-- demo/prototype code lives in `/Users/mac/Documents/Halfway-Lab/demos`
+### @halfway-lab/reading-note
 
-Do not reintroduce active package source under `protocol/HWP/packages`.
+**Version:** `0.2.0`
 
-## Current Packages
+Reading-note extraction built on top of a local Half Way Protocol (HWP) runner.
 
-### `reading-note`
+```bash
+npm install @halfway-lab/reading-note
+```
 
-- stable package boundary around HWP-backed reading-note processing
-- consumed by downstream apps such as Half Note
+- [README](./reading-note/README.md)
 
-### `question-expansion`
+### @halfway-lab/question-expansion
 
-- `v0.1.1` product interpretation layer for Question Expander
-- owns Question Expander-specific path contracts, overviews, session artifacts, and history-facing view models
-- remains parallel to `reading-note`, not layered on top of it
+**Version:** `0.1.4`
 
-## Monorepo Shape
+Question Expander product interpretation layer for Halfway Lab.
 
-- root workspace config lives in `package.json`
-- package source lives in `reading-note/` and `question-expansion/`
-- each package owns its own README, package metadata, and tests
-- package versions are managed independently; this monorepo does not use a single shared repository version tag by default
+```bash
+npm install @halfway-lab/question-expansion
+```
+
+- [README](./question-expansion/README.md)
+
+## Quick Start
+
+Install a specific package:
+
+```bash
+npm install @halfway-lab/reading-note
+# or
+npm install @halfway-lab/question-expansion
+```
+
+Or install from GitHub Packages (make sure your npm auth and scope registry are configured for `@halfway-lab`):
+
+```bash
+npm install @halfway-lab/reading-note --registry=https://npm.pkg.github.com/halfway-lab
+```
+
+## Workspace Structure
+
+```
+.
+├── reading-note/      # Reading-note extraction package
+├── question-expansion/ # Question Expander interpretation layer
+├── package.json       # Root workspace configuration
+└── README.md          # This file
+```
+
+Each package owns its own README, package metadata, and tests. Package versions are managed independently.
+
+## License
+
+MIT
