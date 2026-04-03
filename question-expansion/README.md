@@ -103,7 +103,7 @@ The intended long-term flow is:
 2. `packages/question-expansion` interprets raw HWP output into Question Expander structures
 3. `apps/question-expander` owns input, rendering, interaction, revisit flows, and mobile UX
 
-`packages/question-expansion` and `packages/reading-note` are parallel product-domain packages. Neither package should be described as the interpretation layer for the other.
+This package is a standalone product-domain package. It should not be described as an interpretation layer for any other package.
 
 ## Upstream
 
