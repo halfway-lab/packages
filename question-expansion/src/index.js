@@ -54,7 +54,12 @@ export {
 } from './contracts/rawHwpAudit.js'
 
 // Session Artifacts
-export { buildPauseSummary, buildPathMarkdown, buildSessionSummary } from './session/sessionArtifacts.js'
+export {
+  buildPauseSummary,
+  buildPathMarkdown,
+  buildSessionSummary,
+  buildExplorationContext
+} from './session/sessionArtifacts.js'
 
 // Session Record
 export { buildSessionRecord } from './session/sessionRecord.js'
@@ -67,3 +72,6 @@ export { createSessionId, buildRootParentMap, buildChildParentMap } from './runt
 
 // Status
 export { buildStatusMessage } from './runtime/status.js'
+
+// Tree Traversal Utilities
+export { flattenPaths, buildDescendantScope } from './utils/treeTraversal.js'

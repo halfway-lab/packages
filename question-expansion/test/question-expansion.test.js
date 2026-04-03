@@ -30,7 +30,8 @@ import {
   resolveProtocolSchema,
   registerProtocolVersion,
   getSupportedProtocolVersions,
-  getProtocolCompatibility
+  getProtocolCompatibility,
+  buildExplorationContext
 } from '../src/index.js'
 
 // Import utils modules directly for testing
@@ -1265,4 +1266,329 @@ test('protocol version registry and version-aware validation', () => {
 
   const normalizedExact = normalizeRawHwpExpansion(exactPayload)
   assert.ok(!normalizedExact.meta.protocolCompatibility, 'exact match should not include protocolCompatibility')
+})
+
+// ============================================================================
+// Exploration Context and Enhanced Pause Summary Tests
+// ============================================================================
+
+test('exploration context and enhanced pause summary', () => {
+  // ============================================================================
+  // A. buildExplorationContext 基础功能
+  // ============================================================================
+
+  // 空输入返回合理默认值（空数组、零统计）
+  const emptyContext = buildExplorationContext([], {})
+  assert.equal(emptyContext.question, '')
+  assert.deepEqual(emptyContext.exploredPaths, [])
+  assert.equal(emptyContext.treeStats.totalPathCount, 0)
+  assert.equal(emptyContext.treeStats.rootPathCount, 0)
+  assert.equal(emptyContext.treeStats.deepestLevel, 0)
+  assert.equal(emptyContext.treeStats.averageDepth, 0)
+  assert.deepEqual(emptyContext.treeStats.branchTypeDistribution, {})
+  assert.equal(emptyContext.focusDirection, null)
+  assert.deepEqual(emptyContext.unexploredAreas, [])
+  assert.deepEqual(emptyContext.keyTensions, [])
+  assert.deepEqual(emptyContext.nextQuestions, [])
+  assert.deepEqual(emptyContext.pauseHistory, [])
+
+  // 单根路径生成正确的 exploredPaths 和 treeStats
+  const singleRoot = [
+    {
+      id: 'root-1',
+      path_title: '测试路径',
+      branch_type: 'premise_shift',
+      level: 1,
+      unfinished_score: 0.5,
+      blind_spot_hint: '测试盲点',
+      next_question: '测试问题'
+    }
+  ]
+  const singleContext = buildExplorationContext(singleRoot, {}, { question: '测试问题' })
+  assert.equal(singleContext.question, '测试问题')
+  assert.equal(singleContext.exploredPaths.length, 1)
+  assert.equal(singleContext.exploredPaths[0].id, 'root-1')
+  assert.equal(singleContext.exploredPaths[0].title, '测试路径')
+  assert.equal(singleContext.exploredPaths[0].branchType, 'premise_shift')
+  assert.equal(singleContext.exploredPaths[0].level, 1)
+  assert.equal(singleContext.treeStats.totalPathCount, 1)
+  assert.equal(singleContext.treeStats.rootPathCount, 1)
+  assert.equal(singleContext.treeStats.deepestLevel, 1)
+  assert.equal(singleContext.treeStats.averageDepth, 1)
+
+  // 多层嵌套树正确统计 totalPathCount、deepestLevel、averageDepth
+  const nestedRoot = [
+    { id: 'root-1', path_title: '根路径1', branch_type: 'premise_shift', level: 1, unfinished_score: 0.5, blind_spot_hint: '', next_question: '' },
+    { id: 'root-2', path_title: '根路径2', branch_type: 'hidden_variable', level: 1, unfinished_score: 0.6, blind_spot_hint: '', next_question: '' }
+  ]
+  const nestedChildMap = {
+    'root-1': [
+      { id: 'child-1', path_title: '子路径1', branch_type: 'premise_deconstruction', level: 2, unfinished_score: 0.7, blind_spot_hint: '', next_question: '' },
+      { id: 'child-2', path_title: '子路径2', branch_type: 'variable_temporal', level: 2, unfinished_score: 0.4, blind_spot_hint: '', next_question: '' }
+    ],
+    'child-1': [
+      { id: 'grandchild-1', path_title: '孙路径1', branch_type: 'deep_action', level: 3, unfinished_score: 0.3, blind_spot_hint: '', next_question: '' }
+    ]
+  }
+  const nestedContext = buildExplorationContext(nestedRoot, nestedChildMap)
+  assert.equal(nestedContext.treeStats.totalPathCount, 5)
+  assert.equal(nestedContext.treeStats.rootPathCount, 2)
+  assert.equal(nestedContext.treeStats.deepestLevel, 3)
+  assert.equal(nestedContext.treeStats.averageDepth, 1.8) // (1+1+2+2+3)/5 = 1.8
+
+  // ============================================================================
+  // B. 分支类型分布
+  // ============================================================================
+
+  // branchTypeDistribution 正确统计各类型出现次数
+  const distribution = nestedContext.treeStats.branchTypeDistribution
+  assert.equal(distribution['premise_shift'], 1)
+  assert.equal(distribution['hidden_variable'], 1)
+  assert.equal(distribution['premise_deconstruction'], 1)
+  assert.equal(distribution['variable_temporal'], 1)
+  assert.equal(distribution['deep_action'], 1)
+
+  // unknown 类型正确计入
+  const unknownTypeRoot = [
+    { id: 'root-1', path_title: '路径1', branch_type: 'unknown', level: 1, unfinished_score: 0.5, blind_spot_hint: '', next_question: '' },
+    { id: 'root-2', path_title: '路径2', branch_type: '', level: 1, unfinished_score: 0.5, blind_spot_hint: '', next_question: '' }
+  ]
+  const unknownContext = buildExplorationContext(unknownTypeRoot, {})
+  assert.equal(unknownContext.treeStats.branchTypeDistribution['unknown'], 2)
+
+  // ============================================================================
+  // C. 聚焦方向
+  // ============================================================================
+
+  // 提供 focusedPathId 和 parentPathMap 时正确构建 focusDirection
+  const focusContext = buildExplorationContext(nestedRoot, nestedChildMap, {
+    focusedPathId: 'child-1',
+    parentPathMap: {
+      'root-1': null,
+      'root-2': null,
+      'child-1': 'root-1',
+      'child-2': 'root-1',
+      'grandchild-1': 'child-1'
+    }
+  })
+  assert.ok(focusContext.focusDirection !== null)
+  assert.equal(focusContext.focusDirection.focusedPathId, 'child-1')
+  assert.equal(focusContext.focusDirection.focusedPathTitle, '子路径1')
+  assert.equal(focusContext.focusDirection.focusedBranchType, 'premise_deconstruction')
+
+  // 包含正确的 ancestry（从根到聚焦点的 ID 链）
+  assert.deepEqual(focusContext.focusDirection.ancestry, ['root-1', 'child-1'])
+  assert.equal(focusContext.focusDirection.childCount, 1) // grandchild-1
+
+  // 无 focusedPathId 时 focusDirection 为 null
+  const noFocusContext = buildExplorationContext(nestedRoot, nestedChildMap)
+  assert.equal(noFocusContext.focusDirection, null)
+
+  // 无效的 focusedPathId 时 focusDirection 为 null
+  const invalidFocusContext = buildExplorationContext(nestedRoot, nestedChildMap, {
+    focusedPathId: 'non-existent'
+  })
+  assert.equal(invalidFocusContext.focusDirection, null)
+
+  // ============================================================================
+  // D. 未探索区域识别
+  // ============================================================================
+
+  // 未展开的路径被标记为 not_expanded
+  const unexploredRoot = [
+    { id: 'root-1', path_title: '有子未展开', branch_type: 'premise_shift', level: 1, unfinished_score: 0.3, blind_spot_hint: '', next_question: '' }
+  ]
+  const unexploredChildMap = {
+    'root-1': [
+      { id: 'child-1', path_title: '子路径', branch_type: 'hidden_variable', level: 2, unfinished_score: 0.2, blind_spot_hint: '', next_question: '' }
+    ]
+  }
+  const unexploredContext = buildExplorationContext(unexploredRoot, unexploredChildMap, {
+    openPathIds: {} // root-1 有子节点但未展开
+  })
+  assert.equal(unexploredContext.unexploredAreas.length, 1)
+  assert.equal(unexploredContext.unexploredAreas[0].id, 'root-1')
+  assert.equal(unexploredContext.unexploredAreas[0].reason, 'not_expanded')
+
+  // unfinished_score >= 0.7 的路径被标记为 high_unfinished_score
+  const highUnfinishedRoot = [
+    { id: 'root-1', path_title: '高未完成度', branch_type: 'premise_shift', level: 1, unfinished_score: 0.75, blind_spot_hint: '', next_question: '' }
+  ]
+  const highUnfinishedContext = buildExplorationContext(highUnfinishedRoot, {})
+  assert.equal(highUnfinishedContext.unexploredAreas.length, 1)
+  assert.equal(highUnfinishedContext.unexploredAreas[0].reason, 'high_unfinished_score')
+
+  // 同一路径两种原因时去重（优先 not_expanded）
+  const duplicateRoot = [
+    { id: 'root-1', path_title: '两种原因', branch_type: 'premise_shift', level: 1, unfinished_score: 0.8, blind_spot_hint: '', next_question: '' }
+  ]
+  const duplicateChildMap = {
+    'root-1': [
+      { id: 'child-1', path_title: '子路径', branch_type: 'hidden_variable', level: 2, unfinished_score: 0.2, blind_spot_hint: '', next_question: '' }
+    ]
+  }
+  const duplicateContext = buildExplorationContext(duplicateRoot, duplicateChildMap, {
+    openPathIds: {} // 未展开且高未完成度
+  })
+  assert.equal(duplicateContext.unexploredAreas.length, 1)
+  assert.equal(duplicateContext.unexploredAreas[0].reason, 'not_expanded')
+
+  // ============================================================================
+  // E. 张力和问题提取
+  // ============================================================================
+
+  // 过滤掉默认值文本，只保留有实际内容的
+  const tensionRoot = [
+    {
+      id: 'root-1',
+      path_title: '路径1',
+      branch_type: 'premise_shift',
+      level: 1,
+      unfinished_score: 0.5,
+      blind_spot_hint: '实际张力1',
+      next_question: '实际问题1'
+    },
+    {
+      id: 'root-2',
+      path_title: '路径2',
+      branch_type: 'hidden_variable',
+      level: 1,
+      unfinished_score: 0.5,
+      blind_spot_hint: '当前返回缺少 blind spot 字段。', // 默认值
+      next_question: '继续追问这个方向里最值得澄清的部分。' // 默认值
+    },
+    {
+      id: 'root-3',
+      path_title: '路径3',
+      branch_type: 'deep_action',
+      level: 1,
+      unfinished_score: 0.5,
+      blind_spot_hint: '  ', // 空白字符
+      next_question: '' // 空字符串
+    }
+  ]
+  const tensionContext = buildExplorationContext(tensionRoot, {})
+  assert.equal(tensionContext.keyTensions.length, 1)
+  assert.equal(tensionContext.keyTensions[0], '实际张力1')
+  assert.equal(tensionContext.nextQuestions.length, 1)
+  assert.equal(tensionContext.nextQuestions[0], '实际问题1')
+
+  // 最多返回 5 个
+  const manyTensionsRoot = Array.from({ length: 10 }, (_, i) => ({
+    id: `root-${i}`,
+    path_title: `路径${i}`,
+    branch_type: 'premise_shift',
+    level: 1,
+    unfinished_score: 0.5,
+    blind_spot_hint: `张力${i}`,
+    next_question: `问题${i}`
+  }))
+  const manyTensionsContext = buildExplorationContext(manyTensionsRoot, {})
+  assert.equal(manyTensionsContext.keyTensions.length, 5)
+  assert.equal(manyTensionsContext.nextQuestions.length, 5)
+
+  // 去重功能
+  const duplicateTensionRoot = [
+    { id: 'root-1', path_title: '路径1', branch_type: 'premise_shift', level: 1, unfinished_score: 0.5, blind_spot_hint: '重复张力', next_question: '重复问题' },
+    { id: 'root-2', path_title: '路径2', branch_type: 'hidden_variable', level: 1, unfinished_score: 0.5, blind_spot_hint: '重复张力', next_question: '重复问题' },
+    { id: 'root-3', path_title: '路径3', branch_type: 'deep_action', level: 1, unfinished_score: 0.5, blind_spot_hint: '唯一张力', next_question: '唯一问题' }
+  ]
+  const duplicateTensionContext = buildExplorationContext(duplicateTensionRoot, {})
+  assert.equal(duplicateTensionContext.keyTensions.length, 2)
+  assert.equal(duplicateTensionContext.nextQuestions.length, 2)
+
+  // ============================================================================
+  // F. 暂停历史
+  // ============================================================================
+
+  // pauseCards 正确提取并按 createdAt 排序
+  const pauseCards = {
+    'root-1': {
+      id: 'pause-root-1',
+      title: '暂停1',
+      keyInsight: '洞察1',
+      created_at: '2026-03-31T10:00:00.000Z'
+    },
+    'root-2': {
+      id: 'pause-root-2',
+      title: '暂停2',
+      keyInsight: '洞察2',
+      created_at: '2026-03-31T08:00:00.000Z'
+    },
+    'root-3': {
+      id: 'pause-root-3',
+      title: '暂停3',
+      keyInsight: '洞察3',
+      created_at: '2026-03-31T12:00:00.000Z'
+    }
+  }
+  const pauseHistoryContext = buildExplorationContext(
+    [
+      { id: 'root-1', path_title: '路径1', branch_type: 'premise_shift', level: 1, unfinished_score: 0.5, blind_spot_hint: '', next_question: '' },
+      { id: 'root-2', path_title: '路径2', branch_type: 'hidden_variable', level: 1, unfinished_score: 0.5, blind_spot_hint: '', next_question: '' },
+      { id: 'root-3', path_title: '路径3', branch_type: 'deep_action', level: 1, unfinished_score: 0.5, blind_spot_hint: '', next_question: '' }
+    ],
+    {},
+    { pauseCards }
+  )
+  assert.equal(pauseHistoryContext.pauseHistory.length, 3)
+  // 应该按 createdAt 排序: 08:00, 10:00, 12:00
+  assert.equal(pauseHistoryContext.pauseHistory[0].pathId, 'root-2')
+  assert.equal(pauseHistoryContext.pauseHistory[1].pathId, 'root-1')
+  assert.equal(pauseHistoryContext.pauseHistory[2].pathId, 'root-3')
+
+  // 无 pauseCards 时返回空数组
+  const noPauseContext = buildExplorationContext(tensionRoot, {})
+  assert.deepEqual(noPauseContext.pauseHistory, [])
+
+  // ============================================================================
+  // G. 升级后的 buildPauseSummary
+  // ============================================================================
+
+  const testPath = {
+    id: 'test-path',
+    path_title: '测试路径',
+    branch_type: 'premise_shift',
+    level: 2,
+    blind_spot_hint: '测试洞察',
+    next_question: '测试下一步'
+  }
+
+  // 不传树状态时 explorationContext 为 null（向后兼容）
+  const basicPause = buildPauseSummary(testPath, 2)
+  assert.equal(basicPause.explorationContext, null)
+  assert.equal(basicPause.id, 'pause-test-path')
+  assert.equal(basicPause.level, 2)
+  assert.equal(basicPause.keyInsight, '测试洞察')
+  assert.equal(basicPause.nextAction, '测试下一步')
+
+  // 传入 rootPaths 等参数时 explorationContext 包含完整的探索上下文
+  const enhancedPause = buildPauseSummary(testPath, 2, {
+    rootPaths: nestedRoot,
+    childPathsMap: nestedChildMap,
+    focusedPathId: 'child-1',
+    parentPathMap: {
+      'root-1': null,
+      'root-2': null,
+      'child-1': 'root-1',
+      'child-2': 'root-1',
+      'grandchild-1': 'child-1'
+    },
+    openPathIds: { 'root-1': true },
+    pauseCards: {
+      'root-1': { id: 'pause-root-1', title: '暂停1', keyInsight: '洞察1', created_at: '2026-03-31T10:00:00.000Z' }
+    },
+    question: '核心测试问题'
+  })
+
+  assert.ok(enhancedPause.explorationContext !== null)
+  assert.equal(enhancedPause.explorationContext.question, '核心测试问题')
+  assert.equal(enhancedPause.explorationContext.treeStats.totalPathCount, 5)
+  assert.ok(enhancedPause.explorationContext.focusDirection !== null)
+  assert.equal(enhancedPause.explorationContext.focusDirection.focusedPathId, 'child-1')
+  assert.ok(Array.isArray(enhancedPause.explorationContext.exploredPaths))
+  assert.ok(Array.isArray(enhancedPause.explorationContext.unexploredAreas))
+  assert.ok(Array.isArray(enhancedPause.explorationContext.keyTensions))
+  assert.ok(Array.isArray(enhancedPause.explorationContext.nextQuestions))
+  assert.ok(Array.isArray(enhancedPause.explorationContext.pauseHistory))
 })

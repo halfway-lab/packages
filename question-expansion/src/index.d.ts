@@ -418,6 +418,77 @@ export interface ExpansionViewModelOptions {
   pauseCards?: Record<string, PauseCard>
 }
 
+// ==================== Exploration Context Types ====================
+
+/**
+ * Explored path summary in exploration context
+ */
+export interface ExploredPathSummary {
+  id: string
+  title: string
+  branchType: string
+  level: number
+  unfinishedScore: number
+  blindSpotHint: string
+  nextQuestion: string
+}
+
+/**
+ * Tree statistics in exploration context
+ */
+export interface TreeStats {
+  totalPathCount: number
+  rootPathCount: number
+  deepestLevel: number
+  averageDepth: number
+  branchTypeDistribution: Record<string, number>
+}
+
+/**
+ * Focus direction in exploration context
+ */
+export interface FocusDirection {
+  focusedPathId: string
+  focusedPathTitle: string
+  focusedBranchType: string
+  ancestry: string[]
+  childCount: number
+}
+
+/**
+ * Unexplored area in exploration context
+ */
+export interface UnexploredArea {
+  id: string
+  title: string
+  branchType: string
+  reason: 'not_expanded' | 'high_unfinished_score'
+}
+
+/**
+ * Pause history entry in exploration context
+ */
+export interface PauseHistoryEntry {
+  pathId: string
+  title: string
+  keyInsight: string
+  createdAt: string
+}
+
+/**
+ * Exploration context for pause summary
+ */
+export interface ExplorationContext {
+  question: string
+  exploredPaths: ExploredPathSummary[]
+  treeStats: TreeStats
+  focusDirection: FocusDirection | null
+  unexploredAreas: UnexploredArea[]
+  keyTensions: string[]
+  nextQuestions: string[]
+  pauseHistory: PauseHistoryEntry[]
+}
+
 // ==================== Session Types ====================
 
 /**
@@ -430,6 +501,7 @@ export interface PauseCard {
   nextAction: string
   level: number
   created_at: string
+  explorationContext?: ExplorationContext | null
 }
 
 /**
@@ -783,7 +855,16 @@ export function buildRawHwpAuditReport(
 export function buildPauseSummary(
   path: NormalizedPath,
   level?: number,
-  options?: { timestamp?: string }
+  options?: {
+    timestamp?: string
+    rootPaths?: NormalizedPath[]
+    childPathsMap?: ChildPathsMap
+    focusedPathId?: string | null
+    parentPathMap?: ParentMap
+    openPathIds?: Record<string, boolean>
+    pauseCards?: Record<string, PauseCard>
+    question?: string
+  }
 ): PauseCard
 
 export function buildPathMarkdown(options: {
@@ -802,6 +883,18 @@ export function buildSessionSummary(options: {
   focusedPath?: NormalizedPath | null
   focusedChildren?: NormalizedPath[]
 }): SessionSummary
+
+export function buildExplorationContext(
+  rootPaths?: NormalizedPath[],
+  childPathsMap?: Record<string, NormalizedPath[]>,
+  options?: {
+    focusedPathId?: string | null
+    parentPathMap?: Record<string, string | null>
+    openPathIds?: Record<string, boolean>
+    pauseCards?: Record<string, any>
+    question?: string
+  }
+): ExplorationContext
 
 // Session Record
 export function buildSessionRecord(
@@ -833,6 +926,17 @@ export function buildChildParentMap(parentId: string | number, children: Array<{
 
 // Status
 export function buildStatusMessage(info?: StatusInfo): string
+
+// Tree Traversal Utilities
+export function flattenPaths(
+  rootPaths: NormalizedPath[],
+  childPathsMap: Record<string, NormalizedPath[]>
+): NormalizedPath[]
+
+export function buildDescendantScope(
+  pathId: string,
+  childPathsMap: Record<string, NormalizedPath[]>
+): Set<string>
 
 // Protocol Registry
 export function resolveProtocolSchema(protocolVersion?: string): ProtocolSchema
