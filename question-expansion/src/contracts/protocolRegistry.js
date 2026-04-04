@@ -29,74 +29,87 @@
 // 内置 Schema 定义
 // ============================================
 
+const BASE_FIELD_ALIASES = {
+  // ID 字段
+  id: ['id', 'path_id', 'pathId'],
+
+  // 标题字段
+  path_title: ['path_title', 'title', 'pathTitle'],
+
+  // 摘要字段
+  path_summary: ['path_summary', 'summary', 'pathSummary'],
+
+  // 下一个问题字段
+  next_question: ['next_question', 'nextQuestion', 'follow_up_question', 'continuation_hook'],
+
+  // 分支类型字段
+  branch_type: ['branch_type', 'branchType', 'path_type'],
+
+  // 未完成度分数字段
+  unfinished_score: ['unfinished_score', 'unfinishedScore', 'open_score'],
+
+  // 盲点提示字段
+  blind_spot_hint: ['blind_spot_hint', 'blindSpotHint', 'risk_hint'],
+
+  // 创建时间字段
+  created_at: ['created_at', 'createdAt'],
+
+  // 层级/深度字段
+  level: ['level', 'depth'],
+
+  // 核心问题字段
+  core_question: ['core_question', 'coreQuestion', 'question'],
+
+  // 关键张力字段
+  key_tensions: ['key_tensions', 'keyTensions', 'tensions'],
+
+  // 下一个问题列表字段
+  next_questions: ['next_questions', 'nextQuestions'],
+
+  // 标签字段
+  tags: ['tags', 'labels'],
+
+  // 路径列表字段
+  paths: ['paths', 'expansion_paths']
+}
+
+const BASE_OPTIONAL_FIELDS = [
+  'question',
+  'core_question',
+  'coreQuestion',
+  'key_tensions',
+  'keyTensions',
+  'next_questions',
+  'nextQuestions',
+  'meta'
+]
+
+const BASE_PATH_REQUIRED_FIELDS = ['path_title']
+
+function createProtocolSchema(version, overrides = {}) {
+  return {
+    version,
+    fieldAliases: {
+      ...BASE_FIELD_ALIASES,
+      ...(overrides.fieldAliases || {})
+    },
+    requiredFields: overrides.requiredFields || ['paths'],
+    optionalFields: overrides.optionalFields || BASE_OPTIONAL_FIELDS,
+    pathRequiredFields: overrides.pathRequiredFields || BASE_PATH_REQUIRED_FIELDS,
+    features: {
+      semanticGroups: overrides.features?.semanticGroups || false,
+      protocolVersion: overrides.features?.protocolVersion || false
+    }
+  }
+}
+
 /**
  * Legacy Schema - 无版本号时的默认 schema
  * 与 fieldHelpers.js 中的 FIELD_ALIASES 完全一致
  *
  * @type {ProtocolSchema}
  */
-const LEGACY_SCHEMA = {
-  version: 'legacy',
-  fieldAliases: {
-    // ID 字段
-    id: ['id', 'path_id', 'pathId'],
-
-    // 标题字段
-    path_title: ['path_title', 'title', 'pathTitle'],
-
-    // 摘要字段
-    path_summary: ['path_summary', 'summary', 'pathSummary'],
-
-    // 下一个问题字段
-    next_question: ['next_question', 'nextQuestion', 'follow_up_question', 'continuation_hook'],
-
-    // 分支类型字段
-    branch_type: ['branch_type', 'branchType', 'path_type'],
-
-    // 未完成度分数字段
-    unfinished_score: ['unfinished_score', 'unfinishedScore', 'open_score'],
-
-    // 盲点提示字段
-    blind_spot_hint: ['blind_spot_hint', 'blindSpotHint', 'risk_hint'],
-
-    // 创建时间字段
-    created_at: ['created_at', 'createdAt'],
-
-    // 层级/深度字段
-    level: ['level', 'depth'],
-
-    // 核心问题字段
-    core_question: ['core_question', 'coreQuestion', 'question'],
-
-    // 关键张力字段
-    key_tensions: ['key_tensions', 'keyTensions', 'tensions'],
-
-    // 下一个问题列表字段
-    next_questions: ['next_questions', 'nextQuestions'],
-
-    // 标签字段
-    tags: ['tags', 'labels'],
-
-    // 路径列表字段
-    paths: ['paths', 'expansion_paths']
-  },
-  requiredFields: ['paths'],
-  optionalFields: [
-    'question',
-    'core_question',
-    'coreQuestion',
-    'key_tensions',
-    'keyTensions',
-    'next_questions',
-    'nextQuestions',
-    'meta'
-  ],
-  pathRequiredFields: ['path_title'],
-  features: {
-    semanticGroups: false,
-    protocolVersion: false
-  }
-}
+const LEGACY_SCHEMA = createProtocolSchema('legacy')
 
 /**
  * v0.6.2 Schema - HWP v0.6.2 的 schema
@@ -104,76 +117,29 @@ const LEGACY_SCHEMA = {
  *
  * @type {ProtocolSchema}
  */
-const V062_SCHEMA = {
-  version: '0.6.2',
+const V062_SCHEMA = createProtocolSchema('0.6.2', {
   fieldAliases: {
-    // ID 字段
-    id: ['id', 'path_id', 'pathId'],
-
-    // 标题字段
-    path_title: ['path_title', 'title', 'pathTitle'],
-
-    // 摘要字段
-    path_summary: ['path_summary', 'summary', 'pathSummary'],
-
-    // 下一个问题字段
-    next_question: ['next_question', 'nextQuestion', 'follow_up_question', 'continuation_hook'],
-
-    // 分支类型字段
-    branch_type: ['branch_type', 'branchType', 'path_type'],
-
-    // 未完成度分数字段
-    unfinished_score: ['unfinished_score', 'unfinishedScore', 'open_score'],
-
-    // 盲点提示字段
-    blind_spot_hint: ['blind_spot_hint', 'blindSpotHint', 'risk_hint'],
-
-    // 创建时间字段
-    created_at: ['created_at', 'createdAt'],
-
-    // 层级/深度字段
-    level: ['level', 'depth'],
-
-    // 核心问题字段
-    core_question: ['core_question', 'coreQuestion', 'question'],
-
-    // 关键张力字段
-    key_tensions: ['key_tensions', 'keyTensions', 'tensions'],
-
-    // 下一个问题列表字段
-    next_questions: ['next_questions', 'nextQuestions'],
-
-    // 标签字段
-    tags: ['tags', 'labels'],
-
-    // 路径列表字段
-    paths: ['paths', 'expansion_paths'],
-
-    // v0.6.2 新增字段
     protocol_version: ['protocol_version', 'protocolVersion'],
-    semantic_groups: ['semantic_groups', 'semanticGroups']
+    semantic_groups: ['semantic_groups', 'semanticGroups'],
+    group_count: ['group_count', 'groupCount'],
+    cross_domain_contamination: ['cross_domain_contamination', 'crossDomainContamination']
   },
-  requiredFields: ['paths'],
   optionalFields: [
-    'question',
-    'core_question',
-    'coreQuestion',
-    'key_tensions',
-    'keyTensions',
-    'next_questions',
-    'nextQuestions',
-    'meta',
+    ...BASE_OPTIONAL_FIELDS,
     'protocol_version',
     'protocolVersion',
     'semantic_groups',
-    'semanticGroups'
+    'semanticGroups',
+    'group_count',
+    'groupCount',
+    'cross_domain_contamination',
+    'crossDomainContamination'
   ],
-  pathRequiredFields: ['path_title'],
   features: {
     semanticGroups: true,
     protocolVersion: true
   }
-}
+})
 
 // ============================================
 // 注册表状态
@@ -344,17 +310,13 @@ export function registerProtocolVersion(version, schemaConfig) {
   }
 
   // 构建完整的 schema 对象
-  const schema = {
-    version: normalizedVersion,
+  const schema = createProtocolSchema(normalizedVersion, {
     fieldAliases: schemaConfig.fieldAliases || {},
     requiredFields: schemaConfig.requiredFields || ['paths'],
     optionalFields: schemaConfig.optionalFields || [],
     pathRequiredFields: schemaConfig.pathRequiredFields || ['path_title'],
-    features: {
-      semanticGroups: schemaConfig.features?.semanticGroups || false,
-      protocolVersion: schemaConfig.features?.protocolVersion || false
-    }
-  }
+    features: schemaConfig.features || {}
+  })
 
   registry.set(normalizedVersion, schema)
   resortVersions()

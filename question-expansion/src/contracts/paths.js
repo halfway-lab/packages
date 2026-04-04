@@ -1,4 +1,4 @@
-import { pickStringField, pickNumberField, FIELD_ALIASES, pickFieldWithSchema } from '../utils/fieldHelpers.js'
+import { pickStringField, pickNumberField, pickFieldWithSchema, toArray } from '../utils/fieldHelpers.js'
 import { PATH_DEFAULTS } from '../constants.js'
 
 /**
@@ -86,6 +86,11 @@ export function normalizeExpansionPath(rawPath = {}, options = {}) {
   const level = Number(options.level || pickNumberField(rawPath, 'level', schema, PATH_DEFAULTS.LEVEL))
   const timestamp = options.timestamp || new Date().toISOString()
   const idSeed = options.idSeed || PATH_DEFAULTS.ID_SEED
+  const normalizedTags = toArray(
+    schema
+      ? pickFieldWithSchema(rawPath, 'tags', schema, null)
+      : (rawPath.tags ?? rawPath.labels)
+  )
 
   // 如果有 schema，使用 schema 的 fieldAliases，否则使用硬编码的 FIELD_ALIASES
   const getField = (fieldName, defaultValue) => {
@@ -111,7 +116,7 @@ export function normalizeExpansionPath(rawPath = {}, options = {}) {
     ),
     blind_spot_hint: getField('blind_spot_hint', PATH_DEFAULTS.BLIND_SPOT_HINT),
     level,
-    tags: Array.isArray(rawPath.tags) ? rawPath.tags.filter(Boolean) : [],
+    tags: normalizedTags,
     created_at: getField('created_at', timestamp)
   }
 }

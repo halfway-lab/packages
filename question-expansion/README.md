@@ -1,12 +1,125 @@
 # @halfway-lab/question-expansion
 
-`question-expansion` is the product interpretation layer for Question Expander.
+Normalize raw exploration output into stable path data.
 
-Its job is to translate lower-level HWP output into stable Question Expander objects that the app can render, store, and evolve around.
+Validate, normalize, and audit HWP-style payloads before they hit your UI.
+
+```bash
+npm install @halfway-lab/question-expansion
+```
+
+```js
+import { validateRawHwpExpansion } from '@halfway-lab/question-expansion'
+
+const result = validateRawHwpExpansion({
+  question: 'Should we expand internationally this year?',
+  paths: [
+    {
+      path_id: 'path-1',
+      title: 'Reframe the market-entry assumption',
+      follow_up_question: 'Which constraint matters more than market size?'
+    }
+  ]
+})
+
+if (result.valid) {
+  console.log(result.normalized.expansionPaths)
+}
+```
+
+Why use it:
+
+- Stable output contract for Question Expander-style path exploration
+- Tolerant validation with schema-aware fallback and unknown-field findings
+- Built-in helpers for overviews, session artifacts, view models, and payload audits
+
+## 3-Step Start
+
+1. Install the package.
+
+```bash
+npm install @halfway-lab/question-expansion
+```
+
+2. Validate and normalize raw payloads.
+
+```js
+import { validateRawHwpExpansion } from '@halfway-lab/question-expansion'
+
+const result = validateRawHwpExpansion({
+  question: 'Should we expand internationally this year?',
+  paths: [
+    {
+      path_id: 'path-1',
+      title: 'Reframe the market-entry assumption',
+      follow_up_question: 'Which constraint matters more than market size?'
+    }
+  ]
+})
+
+if (result.valid) {
+  console.log(result.normalized.expansionPaths)
+}
+```
+
+3. Feed the stable output into your UI or product logic.
+
+```js
+import { buildStructuredOverview } from '@halfway-lab/question-expansion'
+
+const normalized = result.normalized
+const overview = buildStructuredOverview(normalized.question, normalized.expansionPaths)
+
+console.log(normalized.expansionPaths[0].path_title)
+console.log(overview.nextQuestions)
+```
+
+## Best For
+
+- apps that render exploration trees, branches, or follow-up question paths
+- adapters that need to normalize unstable provider output before it reaches product logic
+- audit workflows that compare live protocol output against a stable app contract
+- teams evolving a reasoning or question-expansion protocol while keeping downstream UI stable
+
+## Input To Output
+
+Raw input:
+
+```json
+{
+  "question": "Should we expand internationally this year?",
+  "paths": [
+    {
+      "path_id": "path-1",
+      "title": "Reframe the market-entry assumption",
+      "follow_up_question": "Which constraint matters more than market size?",
+      "path_type": "premise_shift"
+    }
+  ]
+}
+```
+
+Normalized output:
+
+```json
+{
+  "question": "Should we expand internationally this year?",
+  "expansionPaths": [
+    {
+      "id": "path-1",
+      "path_title": "Reframe the market-entry assumption",
+      "next_question": "Which constraint matters more than market size?",
+      "branch_type": "premise_shift"
+    }
+  ]
+}
+```
+
+That means upstream payloads can evolve, while your UI and product logic keep depending on one stable shape.
 
 ## Version
 
-Current local package version: `0.1.6`
+Current local package version: `0.1.7`
 
 ## License
 
@@ -21,6 +134,14 @@ MIT
 - downstream integration check: run the Question Expander app tests from `apps/question-expander`
 - heuristic rule notes: `docs/HEURISTICS.md`
 - release readiness notes: `docs/RELEASE_READINESS.md`
+
+## Core Capabilities
+
+- Raw HWP request shaping with `buildRawHwpExpandRequest(...)`
+- Raw HWP normalization for object or top-level array payloads
+- Schema-aware validation with protocol-version fallback
+- Unknown-field auditing at both top-level and path-level
+- Overview and session artifact generation for Question Expander-style UX
 
 ## Owns
 
@@ -71,6 +192,54 @@ import {
   buildStatusMessage
 } from '@halfway-lab/question-expansion'
 ```
+
+## Common Workflows
+
+Validate and normalize a provider payload:
+
+```js
+import { validateRawHwpExpansion } from '@halfway-lab/question-expansion'
+
+const result = validateRawHwpExpansion(payload)
+
+if (result.valid) {
+  console.log(result.normalized.expansionPaths)
+} else {
+  console.log(result.findings)
+}
+```
+
+Audit a real payload from the CLI:
+
+```bash
+npm run audit:raw-hwp -- ./payload.json
+npm run audit:raw-hwp -- ./payload.json --format markdown
+npm run audit:raw-hwp -- ./chain_2026-03-31.jsonl
+```
+
+Build a product-facing expansion view model:
+
+```js
+import {
+  normalizeRawHwpExpansion,
+  buildExpansionViewModel
+} from '@halfway-lab/question-expansion'
+
+const normalized = normalizeRawHwpExpansion(payload)
+const viewModel = buildExpansionViewModel({
+  question: normalized.question,
+  rootPaths: normalized.expansionPaths,
+  focusedPathId: normalized.expansionPaths[0]?.id
+})
+
+console.log(viewModel.structuredOverview)
+```
+
+## What Makes It Different
+
+- It is tolerant by default: unknown fields become findings instead of hard failures.
+- It is product-oriented: outputs are shaped for apps, not raw protocol internals.
+- It is practical for real migrations: you can audit live chain logs before you trust a new upstream contract.
 
 ## Current Structure
 

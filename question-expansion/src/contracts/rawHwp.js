@@ -171,6 +171,11 @@ export function normalizeRawHwpExpansion(rawHwp = {}, options = {}) {
   const nextQuestions = toArray(
     pickFieldWithSchema(rawHwp, 'next_questions', schema, null)
   )
+  const overview = (
+    keyTensions.length === 0 || nextQuestions.length === 0
+  )
+    ? buildStructuredOverview(question, expansionPaths)
+    : null
 
   // 构建 meta 信息，如果 schema 是回退的则记录
   const meta = rawHwp.meta && typeof rawHwp.meta === 'object' ? { ...rawHwp.meta } : {}
@@ -188,10 +193,10 @@ export function normalizeRawHwpExpansion(rawHwp = {}, options = {}) {
     coreQuestion: String(pickFieldWithSchema(rawHwp, 'core_question', schema, '')).trim(),
     keyTensions: keyTensions.length > 0
       ? keyTensions
-      : buildStructuredOverview(question, expansionPaths).keyTensions,
+      : overview.keyTensions,
     nextQuestions: nextQuestions.length > 0
       ? nextQuestions
-      : buildStructuredOverview(question, expansionPaths).nextQuestions,
+      : overview.nextQuestions,
     meta
   }
 }

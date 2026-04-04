@@ -22,6 +22,7 @@ import {
   getBranchTypeLabel,
   inferLiveBranchType,
   matchLiveBranchTypeRule,
+  normalizeExpansionPath,
   normalizeRawHwpExpansion,
   normalizeRawHwpPath,
   summarizeRawHwpValidation,
@@ -1236,6 +1237,28 @@ test('protocol version registry and version-aware validation', () => {
   assert.equal(unknownFieldFinding.level, 'info')
   assert.match(unknownFieldFinding.message, /Unknown field/i)
 
+  // v0.6.2 已声明的可选字段不应再被报告为 unknown field
+  const informationalFieldsPayload = {
+    question: 'Test Question',
+    protocol_version: '0.6.2',
+    semantic_groups: [],
+    group_count: 0,
+    cross_domain_contamination: 0.3,
+    paths: [
+      { path_id: 'path-1', title: 'Test Path', next_question: 'Next?' }
+    ]
+  }
+
+  const informationalFieldsValidation = validateRawHwpExpansion(informationalFieldsPayload)
+  assert.equal(
+    informationalFieldsValidation.findings.some(f => f.field === 'group_count' && /Unknown field/i.test(f.message)),
+    false
+  )
+  assert.equal(
+    informationalFieldsValidation.findings.some(f => f.field === 'cross_domain_contamination' && /Unknown field/i.test(f.message)),
+    false
+  )
+
   // ============================================
   // E. 版本感知规范化
   // ============================================
@@ -1266,6 +1289,52 @@ test('protocol version registry and version-aware validation', () => {
 
   const normalizedExact = normalizeRawHwpExpansion(exactPayload)
   assert.ok(!normalizedExact.meta.protocolCompatibility, 'exact match should not include protocolCompatibility')
+})
+
+test('validateRawHwpExpansion accepts array payloads and normalizeExpansionPath honors labels alias', () => {
+  const arrayPayloadValidation = validateRawHwpExpansion([
+    { title: 'Array Path', next_question: 'Next from array' }
+  ])
+
+  assert.equal(arrayPayloadValidation.valid, true)
+  assert.equal(arrayPayloadValidation.normalized?.expansionPaths.length, 1)
+  assert.equal(arrayPayloadValidation.findings.some(item => item.level === 'error'), false)
+
+  const schema = resolveProtocolSchema('0.6.2')
+  const normalizedPath = normalizeExpansionPath({
+    title: 'Labeled Path',
+    next_question: 'What now?',
+    labels: ['alpha', '', null, 'beta']
+  }, {
+    schema
+  })
+
+  assert.deepEqual(normalizedPath.tags, ['alpha', 'beta'])
+})
+
+test('validateRawHwpExpansion reports unknown path-level fields as info', () => {
+  const validation = validateRawHwpExpansion({
+    question: 'Test Question',
+    protocol_version: '0.6.2',
+    paths: [
+      {
+        path_id: 'path-1',
+        title: 'Test Path',
+        next_question: 'Next?',
+        path_metadata: {
+          score_band: 'high'
+        }
+      }
+    ]
+  })
+
+  const unknownPathFieldFinding = validation.findings.find(
+    item => item.field === 'paths[0].path_metadata'
+  )
+
+  assert.ok(unknownPathFieldFinding, 'should report unknown path field')
+  assert.equal(unknownPathFieldFinding.level, 'info')
+  assert.match(unknownPathFieldFinding.message, /Unknown path field/i)
 })
 
 // ============================================================================

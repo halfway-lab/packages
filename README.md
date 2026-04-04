@@ -18,9 +18,9 @@ npm install @halfway-lab/reading-note
 
 ### @halfway-lab/question-expansion
 
-**Version:** `0.1.4`
+**Version:** `0.1.6`
 
-Question Expander product interpretation layer for Halfway Lab.
+Normalize, validate, and audit raw HWP exploration output into stable Question Expander path data.
 
 ```bash
 npm install @halfway-lab/question-expansion
@@ -49,7 +49,7 @@ npm install @halfway-lab/reading-note --registry=https://npm.pkg.github.com/half
 ```
 .
 ├── reading-note/      # Reading-note extraction package
-├── question-expansion/ # Question Expander interpretation layer
+├── question-expansion/ # Raw exploration payload normalization and audit helpers
 ├── package.json       # Root workspace configuration
 └── README.md          # This file
 ```

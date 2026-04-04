@@ -1,8 +1,20 @@
 {
   "name": "@halfway-lab/question-expansion",
   "private": false,
-  "version": "0.1.6",
-  "description": "Question Expander product interpretation layer for Halfway Lab.",
+  "version": "0.1.7",
+  "description": "Normalize, validate, and audit raw HWP exploration output into stable Question Expander path data.",
+  "keywords": [
+    "hwp",
+    "question-expansion",
+    "question-expander",
+    "reasoning",
+    "exploration",
+    "tree-of-thought",
+    "normalization",
+    "validation",
+    "audit",
+    "view-model"
+  ],
   "license": "MIT",
   "type": "module",
   "main": "./src/index.js",

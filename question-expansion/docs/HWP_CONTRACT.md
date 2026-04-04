@@ -45,6 +45,17 @@ The package now accepts a raw HWP expansion payload shaped like:
 }
 ```
 
+The package also accepts a top-level array of raw path objects for normalization and validation helpers that operate on response-like input:
+
+```json
+[
+  {
+    "title": "重写问题前提",
+    "next_question": "哪些前提还没检查？"
+  }
+]
+```
+
 ## HWP v0.6.2 Optional Fields
 
 The following fields are optional and may be present in raw HWP responses from protocol v0.6.2 onwards:
@@ -142,6 +153,15 @@ Raw HWP payloads may currently use several equivalent field names. The package n
 - path `tags` or `labels`
 - path `tensions`, `key_tensions`, or `keyTensions`
 
+## Validation Notes
+
+`validateRawHwpExpansion(...)` is intentionally tolerant of forward-compatible payloads:
+
+- unknown top-level fields are reported as `info` findings rather than hard errors
+- unknown path-level fields are also reported as `info` findings to surface possible upstream protocol additions
+- unknown `protocol_version` values trigger a fallback warning while continuing validation against the latest known schema
+- top-level array payloads are supported for both validation and normalization
+
 ## Package API
 
 Use:
@@ -156,7 +176,7 @@ Use:
 
 These return Question Expander-facing structures, not protocol-owned HWP structures.
 
-`validateRawHwpExpansion(...)` is useful when auditing a real live provider payload before wiring it into product logic. It reports structural findings and, when valid, also returns the normalized product-facing shape.
+`validateRawHwpExpansion(...)` is useful when auditing a real live provider payload before wiring it into product logic. It reports structural findings, including non-blocking `info` findings for unknown fields, and when valid also returns the normalized product-facing shape.
 
 `summarizeRawHwpValidation(...)` turns that audit output into a compact report object that is easier to log, surface in tooling, or attach to adapter diagnostics.
 

@@ -2,6 +2,20 @@ import { normalizeRawHwpExpansion } from './rawHwp.js'
 import { hasAnyField, pickFieldWithSchema } from '../utils/fieldHelpers.js'
 import { resolveProtocolSchema } from './protocolRegistry.js'
 
+const PATH_KNOWN_FIELD_NAMES = [
+  'id',
+  'path_title',
+  'path_summary',
+  'next_question',
+  'branch_type',
+  'unfinished_score',
+  'blind_spot_hint',
+  'created_at',
+  'level',
+  'key_tensions',
+  'tags'
+]
+
 /**
  * Validate a raw HWP expansion payload.
  *
@@ -18,6 +32,7 @@ import { resolveProtocolSchema } from './protocolRegistry.js'
  */
 export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
   const findings = []
+  const isArrayPayload = Array.isArray(rawHwp)
 
   // 检测 protocol_version 并解析对应的 schema
   const protocolVersion = pickFieldWithSchema(rawHwp, 'protocol_version', null, null)
@@ -30,15 +45,17 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
 
   // 验证根级必填字段（使用 schema.requiredFields）
   const requiredFields = schema.requiredFields || ['paths']
-  for (const field of requiredFields) {
-    const value = pickFieldWithSchema(rawHwp, field, schema, null)
-    if (value === null || value === undefined ||
-        (Array.isArray(value) && value.length === 0)) {
-      findings.push({
-        level: 'error',
-        field,
-        message: `Missing required field: ${field}`
-      })
+  if (!isArrayPayload) {
+    for (const field of requiredFields) {
+      const value = pickFieldWithSchema(rawHwp, field, schema, null)
+      if (value === null || value === undefined ||
+          (Array.isArray(value) && value.length === 0)) {
+        findings.push({
+          level: 'error',
+          field,
+          message: `Missing required field: ${field}`
+        })
+      }
     }
   }
 
@@ -146,6 +163,10 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
     })
   }
 
+  const allKnownPathFields = new Set(
+    PATH_KNOWN_FIELD_NAMES.flatMap(fieldName => schema.fieldAliases?.[fieldName] || [fieldName])
+  )
+
   // 检查顶层字段
   if (rawHwp && typeof rawHwp === 'object' && !Array.isArray(rawHwp)) {
     Object.keys(rawHwp).forEach(fieldName => {
@@ -156,6 +177,25 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
           message: `Unknown field '${fieldName}' detected. This may be a new HWP feature not yet supported by this package version.`
         })
       }
+    })
+  }
+
+  // 检查路径级未知字段
+  if (Array.isArray(rawPaths)) {
+    rawPaths.forEach((path, index) => {
+      if (!path || typeof path !== 'object' || Array.isArray(path)) {
+        return
+      }
+
+      Object.keys(path).forEach(fieldName => {
+        if (!allKnownPathFields.has(fieldName)) {
+          findings.push({
+            level: 'info',
+            field: `paths[${index}].${fieldName}`,
+            message: `Unknown path field '${fieldName}' detected. This may be a new HWP path feature not yet supported by this package version.`
+          })
+        }
+      })
     })
   }
 

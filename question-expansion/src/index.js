@@ -1,9 +1,8 @@
 /**
  * @halfway-lab/question-expansion
  *
- * Question Expander product interpretation layer for Halfway Lab.
- * Translates lower-level HWP output into stable Question Expander objects
- * that the app can render, store, and evolve around.
+ * Normalize, validate, and audit raw HWP exploration output into stable
+ * Question Expander objects that apps can render, store, and build on.
  *
  * @module @halfway-lab/question-expansion
  */
