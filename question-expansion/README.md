@@ -13,9 +13,9 @@ npm install @halfway-lab/question-expansion
 ```
 
 ```js
-import { validateRawHwpExpansion } from '@halfway-lab/question-expansion'
+import { validateRawExpansion } from '@halfway-lab/question-expansion'
 
-const result = validateRawHwpExpansion({
+const result = validateRawExpansion({
   question: 'Should we expand internationally this year?',
   paths: [
     {
@@ -94,7 +94,7 @@ That means upstream payloads can evolve, while your UI and product logic keep de
 
 ## Version
 
-Current local package version: `0.1.8`
+Current local package version: `0.1.9`
 
 ## License
 
@@ -141,31 +141,35 @@ MIT
 
 ```js
 import {
+  buildRawExpansionAuditReport,
+  normalizeRawExpansion,
+  summarizeRawExpansionValidation,
+  validateRawExpansion,
   buildRawHwpExpandRequest,
+  buildRawHwpAuditReport,
+  buildChildParentMap,
+  buildExpansionViewModel,
+  buildHistoryCardViewModel,
+  buildPathMarkdown,
+  buildPauseSummary,
+  buildRootParentMap,
+  buildSessionRecord,
+  buildSessionSummary,
+  buildStatusMessage,
+  buildStructuredOverview,
+  createSessionId,
   extractRawHwpAuditPayload,
-  LIVE_BRANCH_TYPE_RULES,
+  formatSessionTimestamp,
+  getBranchTypeLabel,
   inferLiveBranchType,
+  LIVE_BRANCH_TYPE_RULES,
   matchLiveBranchTypeRule,
   normalizeExpansionPath,
   normalizeExpansionResponse,
-  normalizeRawHwpPath,
   normalizeRawHwpExpansion,
-  validateRawHwpExpansion,
+  normalizeRawHwpPath,
   summarizeRawHwpValidation,
-  buildRawHwpAuditReport,
-  getBranchTypeLabel,
-  buildStructuredOverview,
-  buildExpansionViewModel,
-  buildPauseSummary,
-  buildPathMarkdown,
-  buildSessionSummary,
-  buildSessionRecord,
-  buildHistoryCardViewModel,
-  formatSessionTimestamp,
-  createSessionId,
-  buildRootParentMap,
-  buildChildParentMap,
-  buildStatusMessage
+  validateRawHwpExpansion
 } from '@halfway-lab/question-expansion'
 ```
 
@@ -174,9 +178,9 @@ import {
 Validate and normalize a provider payload:
 
 ```js
-import { validateRawHwpExpansion } from '@halfway-lab/question-expansion'
+import { validateRawExpansion } from '@halfway-lab/question-expansion'
 
-const result = validateRawHwpExpansion(payload)
+const result = validateRawExpansion(payload)
 
 if (result.valid) {
   console.log(result.normalized.expansionPaths)
@@ -197,11 +201,11 @@ Build a product-facing expansion view model:
 
 ```js
 import {
-  normalizeRawHwpExpansion,
+  normalizeRawExpansion,
   buildExpansionViewModel
 } from '@halfway-lab/question-expansion'
 
-const normalized = normalizeRawHwpExpansion(payload)
+const normalized = normalizeRawExpansion(payload)
 const viewModel = buildExpansionViewModel({
   question: normalized.question,
   rootPaths: normalized.expansionPaths,

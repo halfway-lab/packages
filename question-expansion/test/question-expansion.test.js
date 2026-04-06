@@ -163,7 +163,7 @@ test('normalizes raw HWP contract fields into Question Expander structures', () 
   assert.equal(validation.normalized?.expansionPaths.length, 1)
   assert.equal(
     summarizeRawHwpValidation(validation).summaryLine,
-    'Raw HWP payload valid.'
+    'Raw expansion payload valid.'
   )
   assert.equal(
     buildRawHwpAuditReport({
@@ -557,7 +557,7 @@ test('raw HWP audit CLI exits cleanly for valid fixtures and reports invalid fix
     { cwd: process.cwd() }
   )
 
-  assert.match(markdownRun.stdout, /# Raw HWP Audit Report/)
+  assert.match(markdownRun.stdout, /# Raw Expansion Audit Report/)
   assert.match(markdownRun.stdout, /Valid: yes/)
   assert.match(markdownRun.stdout, /Source kind:/)
   assert.match(markdownRun.stdout, /## Path Preview/)
@@ -597,7 +597,7 @@ test('raw HWP audit CLI exits cleanly for valid fixtures and reports invalid fix
     { cwd: process.cwd() }
   )
   const written = await fs.readFile(outputPath, 'utf8')
-  assert.match(written, /# Raw HWP Audit Report/)
+  assert.match(written, /# Raw Expansion Audit Report/)
   await fs.rm(outputPath, { force: true })
 
   await assert.rejects(

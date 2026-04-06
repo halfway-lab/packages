@@ -1,6 +1,7 @@
 /**
  * @halfway-lab/question-expansion
- * Question Expander product interpretation layer for Halfway Lab.
+ * Normalize, validate, and audit compatible raw exploration payloads into
+ * stable Question Expander objects.
  */
 
 // ==================== Core Types ====================
@@ -75,7 +76,8 @@ export interface NormalizedPath {
 }
 
 /**
- * Raw HWP path structure from adapter/provider
+ * Raw expansion path structure from adapter/provider.
+ * Legacy HWP-oriented naming is retained for compatibility.
  */
 export interface RawHwpPath {
   id?: string
@@ -113,7 +115,8 @@ export interface RawHwpPath {
 // ==================== Expansion Types ====================
 
 /**
- * Raw HWP expansion response structure
+ * Raw expansion response structure.
+ * Legacy HWP-oriented naming is retained for compatibility.
  */
 export interface RawHwpExpansion {
   question?: string

@@ -64,7 +64,7 @@ function renderReport(report, format) {
       ? report.derivedFields.paths.filter(item => Object.values(item.derived || {}).some(Boolean)).length
       : 0
     const lines = [
-      '# Raw HWP Audit Report',
+      '# Raw Expansion Audit Report',
       '',
       `- Valid: ${report.valid ? 'yes' : 'no'}`,
       `- Errors: ${report.errorCount}`,

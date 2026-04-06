@@ -1,7 +1,7 @@
 /**
  * @halfway-lab/question-expansion
  *
- * Normalize, validate, and audit raw HWP exploration output into stable
+ * Normalize, validate, and audit compatible raw exploration payloads into stable
  * Question Expander objects that apps can render, store, and build on.
  *
  * @module @halfway-lab/question-expansion
@@ -25,7 +25,7 @@ export { normalizeExpansionPath, normalizeExpansionResponse } from './contracts/
 // Heuristics
 export { LIVE_BRANCH_TYPE_RULES, inferLiveBranchType, matchLiveBranchTypeRule } from './contracts/liveBranchTypeHeuristics.js'
 
-// Raw HWP Contract
+// Raw Expansion Contract
 export {
   buildRawHwpExpandRequest,
   normalizeRawHwpPath,
@@ -33,7 +33,7 @@ export {
   normalizeRawHwpExpansion as normalizeRawExpansion
 } from './contracts/rawHwp.js'
 
-// Raw HWP Validation
+// Raw Expansion Validation
 export {
   validateRawHwpExpansion,
   validateRawHwpExpansion as validateRawExpansion,
@@ -49,7 +49,7 @@ export {
   getProtocolCompatibility
 } from './contracts/protocolRegistry.js'
 
-// Raw HWP Audit
+// Raw Expansion Audit
 export {
   extractRawHwpAuditPayload,
   buildRawHwpAuditReport,

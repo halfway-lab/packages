@@ -17,9 +17,9 @@ const PATH_KNOWN_FIELD_NAMES = [
 ]
 
 /**
- * Validate a raw HWP expansion payload.
+ * Validate a raw expansion payload.
  *
- * @param {RawHwpExpansion|RawHwpExpansion[]} rawHwp - Raw HWP data to validate
+ * @param {RawHwpExpansion|RawHwpExpansion[]} rawHwp - Raw exploration data to validate
  * @param {ValidateOptions} options - Validation options
  * @returns {ValidationResult} Validation result with findings and normalized data
  *
@@ -63,13 +63,13 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
     findings.push({
       level: 'error',
       field: 'paths',
-      message: 'Missing paths array in raw HWP payload.'
+      message: 'Missing paths array in raw expansion payload.'
     })
   } else if (rawPaths.length === 0 && options.allowEmpty !== true) {
     findings.push({
       level: 'error',
       field: 'paths',
-      message: 'Raw HWP payload contains an empty paths array.'
+      message: 'Raw expansion payload contains an empty paths array.'
     })
   }
 
@@ -79,7 +79,7 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
     findings.push({
       level: 'warning',
       field: 'question',
-      message: 'Raw HWP payload does not expose question or core question context.'
+      message: 'Raw expansion payload does not expose question or core question context.'
     })
   }
 
@@ -246,9 +246,9 @@ export function summarizeRawHwpValidation(validation = {}) {
     warningCount: warnings.length,
     summaryLine: validation.valid === true
       ? (warnings.length > 0
-          ? `Raw HWP payload valid with ${warnings.length} warning(s).`
-          : 'Raw HWP payload valid.')
-      : `Raw HWP payload invalid with ${errors.length} error(s) and ${warnings.length} warning(s).`,
+          ? `Raw expansion payload valid with ${warnings.length} warning(s).`
+          : 'Raw expansion payload valid.')
+      : `Raw expansion payload invalid with ${errors.length} error(s) and ${warnings.length} warning(s).`,
     errorFields: errors.map(item => item.field),
     warningFields: warnings.map(item => item.field)
   }
