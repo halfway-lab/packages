@@ -173,7 +173,8 @@ async function main() {
   const options = parseArgs(process.argv.slice(2))
 
   if (!options.inputPath) {
-    console.error('Usage: npm run audit:raw-hwp -- <payload.json> [--format json|markdown] [--output <file>]')
+    console.error('Usage: npm run audit:raw-expansion -- <payload.json> [--format json|markdown] [--output <file>]')
+    console.error('Legacy alias: npm run audit:raw-hwp -- <payload.json> [--format json|markdown] [--output <file>]')
     process.exitCode = 1
     return
   }

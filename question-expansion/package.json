@@ -1,8 +1,8 @@
 {
   "name": "@halfway-lab/question-expansion",
   "private": false,
-  "version": "0.1.7",
-  "description": "Normalize, validate, and audit raw HWP exploration output into stable Question Expander path data.",
+  "version": "0.1.8",
+  "description": "Normalize, validate, and audit compatible raw exploration payloads into stable Question Expander path data.",
   "keywords": [
     "hwp",
     "question-expansion",
@@ -36,6 +36,7 @@
   },
   "scripts": {
     "test": "node --test",
-    "audit:raw-hwp": "node ./tools/auditRawHwp.mjs"
+    "audit:raw-hwp": "node ./tools/auditRawHwp.mjs",
+    "audit:raw-expansion": "node ./tools/auditRawHwp.mjs"
   }
 }

@@ -29,13 +29,16 @@ export { LIVE_BRANCH_TYPE_RULES, inferLiveBranchType, matchLiveBranchTypeRule } 
 export {
   buildRawHwpExpandRequest,
   normalizeRawHwpPath,
-  normalizeRawHwpExpansion
+  normalizeRawHwpExpansion,
+  normalizeRawHwpExpansion as normalizeRawExpansion
 } from './contracts/rawHwp.js'
 
 // Raw HWP Validation
 export {
   validateRawHwpExpansion,
-  summarizeRawHwpValidation
+  validateRawHwpExpansion as validateRawExpansion,
+  summarizeRawHwpValidation,
+  summarizeRawHwpValidation as summarizeRawExpansionValidation
 } from './contracts/rawHwpValidation.js'
 
 // Protocol Registry
@@ -49,7 +52,8 @@ export {
 // Raw HWP Audit
 export {
   extractRawHwpAuditPayload,
-  buildRawHwpAuditReport
+  buildRawHwpAuditReport,
+  buildRawHwpAuditReport as buildRawExpansionAuditReport
 } from './contracts/rawHwpAudit.js'
 
 // Session Artifacts

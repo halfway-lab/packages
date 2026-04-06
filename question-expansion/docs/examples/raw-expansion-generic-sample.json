@@ -1,0 +1,29 @@
+{
+  "question": "Should we expand internationally this year?",
+  "coreQuestion": "Which assumption is narrowing the decision too early?",
+  "keyTensions": [
+    "The framing may be over-weighting market size"
+  ],
+  "nextQuestions": [
+    "Which constraint matters more than market size?"
+  ],
+  "expansion_paths": [
+    {
+      "pathId": "generic-1",
+      "pathTitle": "Reframe the market-entry assumption",
+      "pathSummary": "Check whether the decision is framed too early around scale.",
+      "nextQuestion": "Which constraint matters more than market size?",
+      "branchType": "premise_shift",
+      "unfinishedScore": 0.71,
+      "blindSpotHint": "The current frame may hide operating constraints.",
+      "labels": [
+        "strategy",
+        "market-entry"
+      ]
+    }
+  ],
+  "meta": {
+    "provider": "generic_adapter_sample",
+    "mode": "audit_fixture"
+  }
+}

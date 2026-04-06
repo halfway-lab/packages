@@ -1,24 +1,24 @@
-# Raw HWP Contract
+# Raw Exploration Contract
 
 ## Purpose
 
-`@halfway-lab/question-expansion` should accept raw HWP-oriented output and translate it into stable Question Expander product structures.
+`@halfway-lab/question-expansion` should accept compatible raw exploration output and translate it into stable Question Expander product structures.
 
 This contract exists so that:
 
-- `protocol/HWP` can remain generic
+- upstream runtimes and adapters can evolve independently
 - adapter code can stay thin
 - Question Expander product semantics stay in `packages/question-expansion`
 
-## Upstream Repository
+## Upstream Contract Families
 
-The upstream protocol/execution repository is `halfway-lab/HWP`.
+One important supported upstream protocol/execution repository is `halfway-lab/HWP`.
 
-That repository is the source of truth for HWP execution capability. This package is not coupled to HWP repository internals. It should only depend on request and response contract shapes that an adapter exposes.
+HWP is an important reference contract family for this package, but it is not the only possible upstream. This package is not coupled to HWP repository internals. It should depend only on request and response contract shapes that an adapter exposes.
 
 ## Expected Raw Response Shape
 
-The package now accepts a raw HWP expansion payload shaped like:
+The package accepts a compatible raw exploration payload shaped like:
 
 ```json
 {
@@ -58,7 +58,7 @@ The package also accepts a top-level array of raw path objects for normalization
 
 ## HWP v0.6.2 Optional Fields
 
-The following fields are optional and may be present in raw HWP responses from protocol v0.6.2 onwards:
+The following fields are optional and may be present in HWP-family responses from protocol v0.6.2 onwards:
 
 - `protocol_version` (string): HWP protocol version identifier, e.g., "0.6.2"
 - `semantic_groups` (array, optional): Semantic clustering data containing group analysis
@@ -70,7 +70,7 @@ These fields are informational and do not affect core expansion processing.
 
 ## Protocol Version Awareness
 
-The package now supports automatic schema selection based on the `protocol_version` field in raw HWP responses:
+The package supports automatic schema selection based on the `protocol_version` field in compatible raw exploration payloads:
 
 - **Version Detection**: When `protocol_version` is present in the payload, the package automatically selects the matching validation schema
 - **Built-in Support**: The package includes built-in schemas for `legacy` (no version) and `0.6.2` protocol versions
@@ -107,7 +107,7 @@ That path is intentionally audit-only:
 
 ## Expected Raw Request Shape
 
-The package can also help build the request payload that an adapter sends to HWP-facing infrastructure.
+The package can also help build the request payload that an adapter sends to an upstream exploration runtime. The current helper remains HWP-oriented for compatibility with existing integrations.
 
 Root expansion request:
 
@@ -138,7 +138,7 @@ Nested expansion request:
 
 ## Supported Field Aliases
 
-Raw HWP payloads may currently use several equivalent field names. The package normalizer accepts:
+Compatible raw exploration payloads may currently use several equivalent field names. The package normalizer accepts:
 
 - `paths` or `expansion_paths`
 - `core_question` or `coreQuestion`
@@ -174,7 +174,7 @@ Use:
 - `summarizeRawHwpValidation(validation)`
 - `buildRawHwpAuditReport(rawResponse, options?)`
 
-These return Question Expander-facing structures, not protocol-owned HWP structures.
+These return Question Expander-facing structures, not upstream protocol-owned runtime structures.
 
 `validateRawHwpExpansion(...)` is useful when auditing a real live provider payload before wiring it into product logic. It reports structural findings, including non-blocking `info` findings for unknown fields, and when valid also returns the normalized product-facing shape.
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Use this workflow when you have a real or candidate HWP payload and want to check whether it matches the raw HWP contract expected by `@halfway-lab/question-expansion`.
+Use this workflow when you have a real or candidate raw exploration payload and want to check whether it matches the contract expected by `@halfway-lab/question-expansion`. The new neutral CLI entrypoint is `audit:raw-expansion`, while `audit:raw-hwp` remains supported as a compatibility alias.
 
 The CLI accepts either:
 
@@ -14,37 +14,37 @@ The CLI accepts either:
 Run:
 
 ```bash
-npm run audit:raw-hwp -- ./path/to/payload.json
+npm run audit:raw-expansion -- ./path/to/payload.json
 ```
 
 Markdown output:
 
 ```bash
-npm run audit:raw-hwp -- ./path/to/payload.json --format markdown
+npm run audit:raw-expansion -- ./path/to/payload.json --format markdown
 ```
 
 Write report to a file:
 
 ```bash
-npm run audit:raw-hwp -- ./path/to/payload.json --format markdown --output ./audit-report.md
+npm run audit:raw-expansion -- ./path/to/payload.json --format markdown --output ./audit-report.md
 ```
 
 Example:
 
 ```bash
-npm run audit:raw-hwp -- ./docs/examples/raw-hwp-sample.json
+npm run audit:raw-expansion -- ./docs/examples/raw-hwp-sample.json
 ```
 
 Live chain-log example:
 
 ```bash
-npm run audit:raw-hwp -- ./docs/examples/raw-hwp-live-log-sample.jsonl
+npm run audit:raw-expansion -- ./docs/examples/raw-hwp-live-log-sample.jsonl
 ```
 
 Invalid example:
 
 ```bash
-npm run audit:raw-hwp -- ./docs/examples/raw-hwp-invalid-sample.json
+npm run audit:raw-expansion -- ./docs/examples/raw-hwp-invalid-sample.json
 ```
 
 The script will print a JSON report that includes:

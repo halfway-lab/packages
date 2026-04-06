@@ -7,7 +7,7 @@
 - Repo type: package inside the Halfway-Lab workspace
 - Maintainer role: product-domain package
 - Current package version:
-  - `0.1.7`
+  - `0.1.8`
 - Relationship to HWP:
   - downstream interpretation layer for Question Expander
   - not a protocol source of truth
@@ -33,7 +33,7 @@
   - protocol-core execution ownership
   - app UI
 - Current maturity:
-  - working `v0.1.7` package boundary
+  - working `v0.1.8` package boundary
   - raw HWP contract scaffold is now used by the app HWP client and mock adapter
   - app adapters now return raw payloads while `hwpClient` owns raw-to-product normalization
   - first live HWP benchmark chain-log audit path is now implemented
@@ -75,8 +75,9 @@
 - Test:
   - `npm test`
 - Audit:
-  - `npm run audit:raw-hwp -- ./path/to/payload.json`
-  - `npm run audit:raw-hwp -- ./path/to/chain_*.jsonl`
+  - `npm run audit:raw-expansion -- ./path/to/payload.json`
+  - `npm run audit:raw-expansion -- ./path/to/chain_*.jsonl`
+  - legacy alias: `npm run audit:raw-hwp -- ...`
 - Verify:
   - package self-test plus downstream integration checks in `apps/question-expander`
 

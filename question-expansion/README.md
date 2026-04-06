@@ -2,7 +2,11 @@
 
 Normalize raw exploration output into stable path data.
 
-Validate, normalize, and audit HWP-style payloads before they hit your UI.
+Validate, normalize, and audit compatible raw exploration payloads, including HWP-style payloads, before they hit your UI, storage, or product logic.
+
+- Normalize unstable provider output into one stable contract
+- Surface unknown fields as findings instead of silently missing them
+- Build product-ready overviews and path artifacts on top of normalized data
 
 ```bash
 npm install @halfway-lab/question-expansion
@@ -33,36 +37,7 @@ Why use it:
 - Tolerant validation with schema-aware fallback and unknown-field findings
 - Built-in helpers for overviews, session artifacts, view models, and payload audits
 
-## 3-Step Start
-
-1. Install the package.
-
-```bash
-npm install @halfway-lab/question-expansion
-```
-
-2. Validate and normalize raw payloads.
-
-```js
-import { validateRawHwpExpansion } from '@halfway-lab/question-expansion'
-
-const result = validateRawHwpExpansion({
-  question: 'Should we expand internationally this year?',
-  paths: [
-    {
-      path_id: 'path-1',
-      title: 'Reframe the market-entry assumption',
-      follow_up_question: 'Which constraint matters more than market size?'
-    }
-  ]
-})
-
-if (result.valid) {
-  console.log(result.normalized.expansionPaths)
-}
-```
-
-3. Feed the stable output into your UI or product logic.
+## Next Step
 
 ```js
 import { buildStructuredOverview } from '@halfway-lab/question-expansion'
@@ -119,7 +94,7 @@ That means upstream payloads can evolve, while your UI and product logic keep de
 
 ## Version
 
-Current local package version: `0.1.7`
+Current local package version: `0.1.8`
 
 ## License
 
@@ -128,17 +103,18 @@ MIT
 ## Verification
 
 - package self-test: `npm test`
-- raw payload audit: `npm run audit:raw-hwp -- ./path/to/payload.json`
-- live chain-log audit: `npm run audit:raw-hwp -- /path/to/chain_*.jsonl`
-- raw payload audit as markdown: `npm run audit:raw-hwp -- ./path/to/payload.json --format markdown`
+- raw payload audit: `npm run audit:raw-expansion -- ./path/to/payload.json`
+- live chain-log audit: `npm run audit:raw-expansion -- /path/to/chain_*.jsonl`
+- raw payload audit as markdown: `npm run audit:raw-expansion -- ./path/to/payload.json --format markdown`
+- legacy CLI alias still supported: `npm run audit:raw-hwp -- ...`
 - downstream integration check: run the Question Expander app tests from `apps/question-expander`
 - heuristic rule notes: `docs/HEURISTICS.md`
 - release readiness notes: `docs/RELEASE_READINESS.md`
 
 ## Core Capabilities
 
-- Raw HWP request shaping with `buildRawHwpExpandRequest(...)`
-- Raw HWP normalization for object or top-level array payloads
+- Raw expansion request shaping with `buildRawHwpExpandRequest(...)`
+- Raw exploration payload normalization for object or top-level array payloads
 - Schema-aware validation with protocol-version fallback
 - Unknown-field auditing at both top-level and path-level
 - Overview and session artifact generation for Question Expander-style UX
@@ -212,9 +188,9 @@ if (result.valid) {
 Audit a real payload from the CLI:
 
 ```bash
-npm run audit:raw-hwp -- ./payload.json
-npm run audit:raw-hwp -- ./payload.json --format markdown
-npm run audit:raw-hwp -- ./chain_2026-03-31.jsonl
+npm run audit:raw-expansion -- ./payload.json
+npm run audit:raw-expansion -- ./payload.json --format markdown
+npm run audit:raw-expansion -- ./chain_2026-03-31.jsonl
 ```
 
 Build a product-facing expansion view model:
@@ -268,16 +244,16 @@ src/
 
 The intended long-term flow is:
 
-1. `protocol/HWP` provides raw chain capability
-2. `packages/question-expansion` interprets raw HWP output into Question Expander structures
+1. an upstream adapter or runtime provides a compatible raw exploration contract
+2. `packages/question-expansion` validates and interprets that raw payload into stable Question Expander structures
 3. `apps/question-expander` owns input, rendering, interaction, revisit flows, and mobile UX
 
 This package is a standalone product-domain package. It should not be described as an interpretation layer for any other package.
 
 ## Upstream
 
-The real upstream protocol repository is `halfway-lab/HWP`.
+`halfway-lab/HWP` is one supported upstream contract family, and an important reference implementation for this package.
 
-This package should depend only on the raw HWP contract shape. It should not depend on HWP repository-internal file layout, scripts, or module structure.
+This package should depend only on a compatible raw exploration contract. It should not depend on upstream repository-internal file layout, scripts, or module structure.
 
 For audit and alignment only, the CLI can also read a real HWP `chain_*.jsonl` log entry and extract a contract-shaped payload before validation. That extraction path is intentionally audit-only, reports which fields were derived or inferred, and does not change the runtime product contract.

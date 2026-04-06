@@ -835,21 +835,25 @@ export function normalizeRawHwpExpansion(
   rawHwp: RawHwpExpansion | RawHwpExpansion[],
   options?: NormalizeOptions
 ): NormalizedExpansion
+export const normalizeRawExpansion: typeof normalizeRawHwpExpansion
 
 export function validateRawHwpExpansion(
   rawHwp: RawHwpExpansion | RawHwpExpansion[],
   options?: ValidateOptions
 ): ValidationResult
+export const validateRawExpansion: typeof validateRawHwpExpansion
 
 export function summarizeRawHwpValidation(validation: {
   valid?: boolean
   findings?: ValidationFinding[]
 }): ValidationSummary
+export const summarizeRawExpansionValidation: typeof summarizeRawHwpValidation
 
 export function buildRawHwpAuditReport(
   rawHwp: Record<string, unknown>,
   options?: AuditOptions
 ): AuditReport
+export const buildRawExpansionAuditReport: typeof buildRawHwpAuditReport
 
 // Session Artifacts
 export function buildPauseSummary(

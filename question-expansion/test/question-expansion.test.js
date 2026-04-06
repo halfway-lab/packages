@@ -16,6 +16,7 @@ import {
   buildSessionRecord,
   buildStatusMessage,
   buildStructuredOverview,
+  buildRawExpansionAuditReport,
   buildRawHwpAuditReport,
   createSessionId,
   extractRawHwpAuditPayload,
@@ -23,9 +24,12 @@ import {
   inferLiveBranchType,
   matchLiveBranchTypeRule,
   normalizeExpansionPath,
+  normalizeRawExpansion,
   normalizeRawHwpExpansion,
   normalizeRawHwpPath,
+  summarizeRawExpansionValidation,
   summarizeRawHwpValidation,
+  validateRawExpansion,
   validateRawHwpExpansion,
   normalizeExpansionResponse,
   resolveProtocolSchema,
@@ -174,6 +178,40 @@ test('normalizes raw HWP contract fields into Question Expander structures', () 
       paths: [path]
     }).pathPreviews[0].title,
     '重写问题前提'
+  )
+  assert.deepEqual(
+    normalizeRawExpansion({
+      question: '我要不要换工作',
+      paths: [path]
+    }),
+    normalizeRawHwpExpansion({
+      question: '我要不要换工作',
+      paths: [path]
+    })
+  )
+  assert.deepEqual(
+    validateRawExpansion({
+      question: '我要不要换工作',
+      paths: [path]
+    }),
+    validateRawHwpExpansion({
+      question: '我要不要换工作',
+      paths: [path]
+    })
+  )
+  assert.deepEqual(
+    summarizeRawExpansionValidation(validation),
+    summarizeRawHwpValidation(validation)
+  )
+  assert.deepEqual(
+    buildRawExpansionAuditReport({
+      question: '我要不要换工作',
+      paths: [path]
+    }),
+    buildRawHwpAuditReport({
+      question: '我要不要换工作',
+      paths: [path]
+    })
   )
   assert.ok(Array.isArray(LIVE_BRANCH_TYPE_RULES))
   assert.ok(LIVE_BRANCH_TYPE_RULES.some(rule => rule.branchType === 'hidden_variable'))
@@ -1335,6 +1373,38 @@ test('validateRawHwpExpansion reports unknown path-level fields as info', () => 
   assert.ok(unknownPathFieldFinding, 'should report unknown path field')
   assert.equal(unknownPathFieldFinding.level, 'info')
   assert.match(unknownPathFieldFinding.message, /Unknown path field/i)
+})
+
+test('neutral raw expansion APIs handle generic, HWP-style, and malformed payload fixtures', async () => {
+  const genericFixture = JSON.parse(
+    await fs.readFile(new URL('../docs/examples/raw-expansion-generic-sample.json', import.meta.url), 'utf8')
+  )
+  const hwpFixture = JSON.parse(
+    await fs.readFile(new URL('../docs/examples/raw-hwp-sample.json', import.meta.url), 'utf8')
+  )
+  const malformedFixture = JSON.parse(
+    await fs.readFile(new URL('../docs/examples/raw-hwp-invalid-sample.json', import.meta.url), 'utf8')
+  )
+
+  const genericNormalized = normalizeRawExpansion(genericFixture)
+  assert.equal(genericNormalized.question, 'Should we expand internationally this year?')
+  assert.equal(genericNormalized.coreQuestion, 'Which assumption is narrowing the decision too early?')
+  assert.equal(genericNormalized.expansionPaths.length, 1)
+  assert.equal(genericNormalized.expansionPaths[0].id, 'generic-1')
+  assert.equal(genericNormalized.expansionPaths[0].branch_type, 'premise_shift')
+  assert.deepEqual(genericNormalized.expansionPaths[0].tags, ['strategy', 'market-entry'])
+
+  const genericValidation = validateRawExpansion(genericFixture)
+  assert.equal(genericValidation.valid, true)
+  assert.deepEqual(genericValidation.normalized, validateRawHwpExpansion(genericFixture).normalized)
+
+  const hwpNormalized = normalizeRawExpansion(hwpFixture)
+  assert.deepEqual(hwpNormalized, normalizeRawHwpExpansion(hwpFixture))
+
+  const malformedValidation = validateRawExpansion(malformedFixture)
+  assert.equal(malformedValidation.valid, false)
+  assert.equal(malformedValidation.normalized, null)
+  assert.ok(malformedValidation.findings.some(item => item.level === 'error'))
 })
 
 // ============================================================================
