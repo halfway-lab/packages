@@ -1,8 +1,8 @@
-# Raw HWP Audit Workflow
+# Raw Expansion Audit Workflow
 
 ## Purpose
 
-Use this workflow when you have a real or candidate raw exploration payload and want to check whether it matches the contract expected by `@halfway-lab/question-expansion`. The new neutral CLI entrypoint is `audit:raw-expansion`, while `audit:raw-hwp` remains supported as a compatibility alias.
+Use this workflow when you have a real or candidate raw exploration payload and want to check whether it matches the contract expected by `@halfway-lab/question-expansion`. The default CLI entrypoint is `audit:raw-expansion`, while `audit:raw-hwp` remains supported as a compatibility alias.
 
 The CLI accepts either:
 

@@ -94,7 +94,7 @@ That means upstream payloads can evolve, while your UI and product logic keep de
 
 ## Version
 
-Current local package version: `0.1.9`
+Current local package version: `0.1.10`
 
 ## License
 

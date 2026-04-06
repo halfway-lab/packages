@@ -1,7 +1,7 @@
 {
   "name": "@halfway-lab/question-expansion",
   "private": false,
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Normalize, validate, and audit compatible raw exploration payloads into stable Question Expander path data.",
   "keywords": [
     "hwp",
@@ -31,6 +31,19 @@
   "exports": {
     ".": "./src/index.js"
   },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "src",
+    "tools/auditRawHwp.mjs",
+    "docs/AUDIT_WORKFLOW.md",
+    "docs/HEURISTICS.md",
+    "docs/HWP_CONTRACT.md",
+    "docs/examples/raw-expansion-generic-sample.json",
+    "docs/examples/raw-hwp-invalid-sample.json",
+    "docs/examples/raw-hwp-live-log-sample.jsonl",
+    "docs/examples/raw-hwp-sample.json"
+  ],
   "publishConfig": {
     "access": "public"
   },

@@ -7,7 +7,7 @@
 - Repo type: package inside the Halfway-Lab workspace
 - Maintainer role: product-domain package
 - Current package version:
-  - `0.1.9`
+  - `0.1.10`
 - Relationship to HWP:
   - downstream interpretation layer for Question Expander
   - not a protocol source of truth
@@ -33,13 +33,13 @@
   - protocol-core execution ownership
   - app UI
 - Current maturity:
-  - working `v0.1.9` package boundary
-  - raw HWP contract scaffold is now used by the app HWP client and mock adapter
+  - working `v0.1.10` package boundary
+  - compatible raw exploration contract scaffold is now used by the app HWP client and mock adapter
   - app adapters now return raw payloads while `hwpClient` owns raw-to-product normalization
   - first live HWP benchmark chain-log audit path is now implemented
   - live branch-type heuristics are now isolated into a dedicated strategy module and documented separately
   - MIT license metadata and LICENSE file are now present for release readiness
-  - schema-aware raw HWP validation now supports top-level array payloads, alias-consistent path normalization, and unknown field auditing at both top-level and path-level
+  - schema-aware raw expansion validation now supports top-level array payloads, alias-consistent path normalization, and unknown field auditing at both top-level and path-level
 
 ## Entry Points
 
