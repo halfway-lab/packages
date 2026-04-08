@@ -92,6 +92,11 @@ export interface RawHwpPath {
   next_question?: string
   nextQuestion?: string
   follow_up_question?: string
+  continuation_hook?: string
+  openQuestions?: string[]
+  open_questions?: string[]
+  nextSteps?: string[]
+  next_steps?: string[]
   branch_type?: string
   branchType?: string
   path_type?: string
@@ -107,6 +112,8 @@ export interface RawHwpPath {
   createdAt?: string
   tags?: string[]
   labels?: string[]
+  parentId?: string | null
+  parent_id?: string | null
   tensions?: Array<{ description?: string } | string>
   key_tensions?: Array<{ description?: string } | string>
   keyTensions?: Array<{ description?: string } | string>
@@ -120,6 +127,8 @@ export interface RawHwpPath {
  */
 export interface RawHwpExpansion {
   question?: string
+  sessionId?: string
+  session_id?: string
   core_question?: string
   coreQuestion?: string
   paths?: RawHwpPath[]
@@ -128,7 +137,76 @@ export interface RawHwpExpansion {
   keyTensions?: Array<{ description?: string } | string>
   next_questions?: string[]
   nextQuestions?: string[]
-  meta?: Record<string, unknown>
+  protocol_version?: string
+  protocolVersion?: string
+  semantic_groups?: unknown[]
+  semanticGroups?: unknown[]
+  group_count?: number
+  groupCount?: number
+  cross_domain_contamination?: number
+  crossDomainContamination?: number
+  meta?: RawExpansionMeta
+}
+
+/**
+ * Normalized expansion result
+ */
+export interface ProtocolCompatibilityInfo {
+  status: 'fallback'
+  requestedVersion: string
+  resolvedVersion: string
+}
+
+/**
+ * Product-facing metadata preserved from raw expansion payloads.
+ */
+export interface RawExpansionMeta {
+  source?: string
+  source_kind?: string
+  extraction_mode?: string
+  provider?: string
+  model?: string
+  mode?: string
+  level?: number
+  round?: number
+  round_id?: string
+  node_id?: string
+  parent_id?: string
+  sessionId?: string
+  session_id?: string
+  protocol_version?: string
+  semantic_groups_count?: number
+  continuity_score?: number
+  blind_spot_score?: number
+  contractVersion?: string
+  contract_version?: string
+  generatedAt?: string
+  generated_at?: string
+  protocolCompatibility?: ProtocolCompatibilityInfo
+  derived_fields?: {
+    question: string[]
+    core_question: string[]
+    key_tensions: string[]
+    next_questions: string[]
+    paths: Array<{
+      index: number
+      id: string
+      derived: {
+        title: boolean
+        summary: boolean
+        next_question: boolean
+        branch_type: boolean
+      }
+      branch_type_source: 'raw' | 'inferred'
+      branch_type: string
+      heuristic: {
+        rule_id: string
+        matched_keywords: string[]
+        confidence: ConfidenceLevel
+      }
+    }>
+  }
+  [key: string]: unknown
 }
 
 /**
@@ -146,7 +224,7 @@ export interface NormalizedExpansion {
   /** Suggested next questions */
   nextQuestions: string[]
   /** Metadata from the expansion */
-  meta: Record<string, unknown>
+  meta: RawExpansionMeta
 }
 
 // ==================== Options Types ====================
@@ -290,43 +368,10 @@ export interface AuditPayload {
     tensions: string[]
     tags: string[]
   }>
-  meta: {
+  meta: RawExpansionMeta & {
     source_kind: string
     extraction_mode: string
-    derived_fields: {
-      question: string[]
-      core_question: string[]
-      key_tensions: string[]
-      next_questions: string[]
-      paths: Array<{
-        index: number
-        id: string
-        derived: {
-          title: boolean
-          summary: boolean
-          next_question: boolean
-          branch_type: boolean
-        }
-        branch_type_source: 'raw' | 'inferred'
-        branch_type: string
-        heuristic: {
-          rule_id: string
-          matched_keywords: string[]
-          confidence: ConfidenceLevel
-        }
-      }>
-    }
-    round?: number
-    round_id?: string
-    node_id?: string
-    parent_id?: string
-    continuity_score?: number
-    blind_spot_score?: number
-    provider?: string
-    model?: string
-    session_id?: string
-    protocol_version?: string
-    semantic_groups_count?: number
+    derived_fields: NonNullable<RawExpansionMeta['derived_fields']>
   }
 }
 

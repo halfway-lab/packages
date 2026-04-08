@@ -3,12 +3,14 @@
 ## Current State
 
 - Local package version: `0.1.10`
-- Published npm version: `0.1.9`
+- Published npm version: `0.1.10`
 - Package test status: passing
 - Live audit workflow: implemented
 - Heuristic rule table: separated into its own module
 - Heuristic rule notes: documented
 - Raw expansion validation coverage: includes schema-aware unknown-field auditing at top-level and path-level
+- Neutral raw alias alignment: shipped
+- Downstream registry integration check: passing
 
 ## What Feels Stable
 
@@ -37,7 +39,7 @@ Before the next publish, confirm:
 
 ## Recommended Next Version Scope
 
-Target next version: `0.1.10`
+Target next version: `patch TBD`
 
 Suggested contents:
 

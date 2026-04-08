@@ -40,6 +40,8 @@
   - live branch-type heuristics are now isolated into a dedicated strategy module and documented separately
   - MIT license metadata and LICENSE file are now present for release readiness
   - schema-aware raw expansion validation now supports top-level array payloads, alias-consistent path normalization, and unknown field auditing at both top-level and path-level
+  - neutral raw aliases such as `sessionId`, `openQuestions`, `nextSteps`, and `parentId` are now recognized as part of the supported input surface
+  - npm package `@halfway-lab/question-expansion@0.1.10` has been published and downstream app integration was re-verified against the registry version
 
 ## Entry Points
 
@@ -94,9 +96,10 @@
 ## Next Development Step
 
 - Highest-priority next task:
-  - prepare the next release cut, including version bump, changelog/release notes, and downstream integration confirmation
+  - observe real adapter payload drift and only widen the runtime contract when new upstream evidence requires it
 - What should happen right after package-boundary changes:
   - confirm Question Expander app integration still matches the package contract
+  - keep published release notes current when the package surface changes
 
 ## Notes
 

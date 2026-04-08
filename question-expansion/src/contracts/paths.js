@@ -95,11 +95,21 @@ export function normalizeExpansionPath(rawPath = {}, options = {}) {
   // 如果有 schema，使用 schema 的 fieldAliases，否则使用硬编码的 FIELD_ALIASES
   const getField = (fieldName, defaultValue) => {
     if (schema) {
-      return pickFieldWithSchema(rawPath, fieldName, schema, defaultValue)
+      const value = pickFieldWithSchema(rawPath, fieldName, schema, defaultValue)
+      if (fieldName === 'next_question' && Array.isArray(value)) {
+        return value[0] ?? defaultValue
+      }
+      return value
     }
     // 无 schema 时，根据字段类型选择适当的函数
     if (fieldName === 'unfinished_score' || fieldName === 'level') {
       return pickNumberField(rawPath, fieldName, defaultValue)
+    }
+    if (fieldName === 'next_question') {
+      const value = pickFieldWithSchema(rawPath, fieldName, null, defaultValue)
+      return Array.isArray(value)
+        ? (value[0] ?? defaultValue)
+        : (value !== undefined && value !== null ? String(value).trim() : defaultValue)
     }
     return pickStringField(rawPath, fieldName, defaultValue)
   }

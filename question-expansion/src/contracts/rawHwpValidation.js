@@ -13,7 +13,8 @@ const PATH_KNOWN_FIELD_NAMES = [
   'created_at',
   'level',
   'key_tensions',
-  'tags'
+  'tags',
+  'parent_id'
 ]
 
 /**
@@ -174,7 +175,7 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
         findings.push({
           level: 'info',
           field: fieldName,
-          message: `Unknown field '${fieldName}' detected. This may be a new HWP feature not yet supported by this package version.`
+          message: `Unknown field '${fieldName}' detected. This may be a new upstream or adapter field not yet supported by this package version.`
         })
       }
     })
@@ -192,7 +193,7 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
           findings.push({
             level: 'info',
             field: `paths[${index}].${fieldName}`,
-            message: `Unknown path field '${fieldName}' detected. This may be a new HWP path feature not yet supported by this package version.`
+            message: `Unknown path field '${fieldName}' detected. This may be a new upstream or adapter path field not yet supported by this package version.`
           })
         }
       })

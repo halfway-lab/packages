@@ -788,6 +788,8 @@ test('pickStringField resolves field aliases correctly', () => {
   assert.equal(pickStringField({ nextQuestion: 'Q2' }, 'next_question'), 'Q2')
   assert.equal(pickStringField({ follow_up_question: 'Q3' }, 'next_question'), 'Q3')
   assert.equal(pickStringField({ continuation_hook: 'Q4' }, 'next_question'), 'Q4')
+  assert.equal(pickStringField({ openQuestions: ['Q5'] }, 'next_question'), 'Q5')
+  assert.equal(pickStringField({ nextSteps: ['Q6'] }, 'next_question'), 'Q6')
   
   // 测试 branch_type 的别名
   assert.equal(pickStringField({ branch_type: 'premise_shift' }, 'branch_type'), 'premise_shift')
@@ -829,9 +831,17 @@ test('FIELD_ALIASES contains expected field mappings', () => {
   assert.ok(Array.isArray(FIELD_ALIASES.next_question))
   assert.ok(FIELD_ALIASES.next_question.includes('follow_up_question'))
   assert.ok(FIELD_ALIASES.next_question.includes('continuation_hook'))
+  assert.ok(FIELD_ALIASES.next_question.includes('openQuestions'))
+  assert.ok(FIELD_ALIASES.next_question.includes('nextSteps'))
   
   assert.ok(Array.isArray(FIELD_ALIASES.branch_type))
   assert.ok(FIELD_ALIASES.branch_type.includes('path_type'))
+
+  assert.ok(Array.isArray(FIELD_ALIASES.session_id))
+  assert.ok(FIELD_ALIASES.session_id.includes('sessionId'))
+
+  assert.ok(Array.isArray(FIELD_ALIASES.parent_id))
+  assert.ok(FIELD_ALIASES.parent_id.includes('parentId'))
 })
 
 // ============================================================================
@@ -1373,6 +1383,55 @@ test('validateRawHwpExpansion reports unknown path-level fields as info', () => 
   assert.ok(unknownPathFieldFinding, 'should report unknown path field')
   assert.equal(unknownPathFieldFinding.level, 'info')
   assert.match(unknownPathFieldFinding.message, /Unknown path field/i)
+})
+
+test('neutral raw payload aliases are recognized without unknown-field drift', () => {
+  const validation = validateRawExpansion({
+    question: 'Q',
+    sessionId: 'session-1',
+    session_id: 'session-1',
+    paths: [
+      {
+        id: 'path-1',
+        title: 'Neutral Path',
+        branchType: 'premise_shift',
+        openQuestions: ['Which assumption should we reopen?'],
+        nextSteps: ['Re-check the market-entry premise'],
+        parentId: null
+      }
+    ],
+    meta: {
+      provider: 'simple_llm_adapter',
+      contractVersion: 'qe-raw-v1'
+    }
+  })
+
+  assert.equal(validation.valid, true)
+  assert.equal(
+    validation.findings.some(item => item.field === 'sessionId' && item.level === 'info'),
+    false
+  )
+  assert.equal(
+    validation.findings.some(item => item.field === 'session_id' && item.level === 'info'),
+    false
+  )
+  assert.equal(
+    validation.findings.some(item => item.field === 'paths[0].openQuestions' && item.level === 'info'),
+    false
+  )
+  assert.equal(
+    validation.findings.some(item => item.field === 'paths[0].nextSteps' && item.level === 'info'),
+    false
+  )
+  assert.equal(
+    validation.findings.some(item => item.field === 'paths[0].parentId' && item.level === 'info'),
+    false
+  )
+
+  assert.equal(validation.normalized?.expansionPaths[0].next_question, 'Which assumption should we reopen?')
+  assert.equal(validation.normalized?.expansionPaths[0].branch_type, 'premise_shift')
+  assert.equal(validation.normalized?.meta.sessionId, 'session-1')
+  assert.equal(validation.normalized?.meta.session_id, 'session-1')
 })
 
 test('neutral raw expansion APIs handle generic, HWP-style, and malformed payload fixtures', async () => {

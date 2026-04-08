@@ -99,13 +99,16 @@ export function normalizeRawHwpPath(rawPath = {}, options = {}) {
     rawPath.tensions ||
     pickFieldWithSchema(rawPath, 'key_tensions', schema, null)
   )
+  const normalizedNextQuestion = pickFieldWithSchema(rawPath, 'next_question', schema, null)
 
   return {
     ...normalizeExpansionPath({
       id: pickFieldWithSchema(rawPath, 'id', schema, null),
       path_title: pickFieldWithSchema(rawPath, 'path_title', schema, null),
       path_summary: pickFieldWithSchema(rawPath, 'path_summary', schema, null),
-      next_question: pickFieldWithSchema(rawPath, 'next_question', schema, null),
+      next_question: Array.isArray(normalizedNextQuestion)
+        ? normalizedNextQuestion[0]
+        : normalizedNextQuestion,
       branch_type: pickFieldWithSchema(rawPath, 'branch_type', schema, null),
       unfinished_score: pickFieldWithSchema(rawPath, 'unfinished_score', schema, null),
       blind_spot_hint: pickFieldWithSchema(rawPath, 'blind_spot_hint', schema, null),
@@ -179,6 +182,11 @@ export function normalizeRawHwpExpansion(rawHwp = {}, options = {}) {
 
   // 构建 meta 信息，如果 schema 是回退的则记录
   const meta = rawHwp.meta && typeof rawHwp.meta === 'object' ? { ...rawHwp.meta } : {}
+  const sessionId = String(pickFieldWithSchema(rawHwp, 'session_id', schema, '') || '').trim()
+  if (sessionId) {
+    meta.sessionId = meta.sessionId || sessionId
+    meta.session_id = meta.session_id || sessionId
+  }
   if (schema._fallback) {
     meta.protocolCompatibility = {
       status: 'fallback',

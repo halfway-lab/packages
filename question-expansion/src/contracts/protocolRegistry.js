@@ -40,7 +40,16 @@ const BASE_FIELD_ALIASES = {
   path_summary: ['path_summary', 'summary', 'pathSummary'],
 
   // 下一个问题字段
-  next_question: ['next_question', 'nextQuestion', 'follow_up_question', 'continuation_hook'],
+  next_question: [
+    'next_question',
+    'nextQuestion',
+    'follow_up_question',
+    'continuation_hook',
+    'openQuestions',
+    'open_questions',
+    'nextSteps',
+    'next_steps'
+  ],
 
   // 分支类型字段
   branch_type: ['branch_type', 'branchType', 'path_type'],
@@ -70,11 +79,19 @@ const BASE_FIELD_ALIASES = {
   tags: ['tags', 'labels'],
 
   // 路径列表字段
-  paths: ['paths', 'expansion_paths']
+  paths: ['paths', 'expansion_paths'],
+
+  // 父路径 ID 字段
+  parent_id: ['parent_id', 'parentId'],
+
+  // 会话 ID 字段
+  session_id: ['session_id', 'sessionId']
 }
 
 const BASE_OPTIONAL_FIELDS = [
   'question',
+  'sessionId',
+  'session_id',
   'core_question',
   'coreQuestion',
   'key_tensions',

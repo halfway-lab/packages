@@ -142,15 +142,17 @@ Compatible raw exploration payloads may currently use several equivalent field n
 
 - `paths` or `expansion_paths`
 - `core_question` or `coreQuestion`
+- `sessionId` or `session_id`
 - `key_tensions` or `keyTensions`
 - `next_questions` or `nextQuestions`
 - path `title` or `path_title`
 - path `summary` or `path_summary`
-- path `next_question`, `nextQuestion`, or `follow_up_question`
+- path `next_question`, `nextQuestion`, `follow_up_question`, `openQuestions`, `open_questions`, `nextSteps`, or `next_steps`
 - path `branch_type`, `branchType`, or `path_type`
 - path `blind_spot_hint`, `blindSpotHint`, or `risk_hint`
 - path `unfinished_score`, `unfinishedScore`, or `open_score`
 - path `tags` or `labels`
+- path `parentId` or `parent_id`
 - path `tensions`, `key_tensions`, or `keyTensions`
 
 ## Validation Notes

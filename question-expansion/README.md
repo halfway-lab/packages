@@ -92,6 +92,8 @@ Normalized output:
 
 That means upstream payloads can evolve, while your UI and product logic keep depending on one stable shape.
 
+The raw-input side is intentionally tolerant: besides HWP-style fields, it also accepts neutral aliases such as `sessionId`, `openQuestions`, `nextSteps`, and `parentId` for adapter-facing payload alignment.
+
 ## Version
 
 Current local package version: `0.1.10`
