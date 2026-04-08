@@ -159,6 +159,73 @@ export interface RawHwpExpansion {
 export type RawExpansionPayload = RawHwpExpansion
 
 /**
+ * Single payload entry inside an audit wrapper log object.
+ */
+export interface RawHwpAuditWrapperPayloadEntry {
+  text?: string
+  mediaUrl?: string | null
+  [key: string]: unknown
+}
+
+/**
+ * Neutral alias for audit wrapper payload entries.
+ */
+export type RawExpansionAuditWrapperPayloadEntry = RawHwpAuditWrapperPayloadEntry
+
+/**
+ * Agent metadata sometimes attached to audit wrapper inputs.
+ */
+export interface RawHwpAuditAgentMeta {
+  sessionId?: string
+  provider?: string
+  model?: string
+  [key: string]: unknown
+}
+
+/**
+ * Neutral alias for audit wrapper agent metadata.
+ */
+export type RawExpansionAuditAgentMeta = RawHwpAuditAgentMeta
+
+/**
+ * Wrapper metadata attached to audit payload collections.
+ */
+export interface RawHwpAuditWrapperMeta {
+  durationMs?: number
+  agentMeta?: RawHwpAuditAgentMeta
+  [key: string]: unknown
+}
+
+/**
+ * Neutral alias for audit wrapper metadata.
+ */
+export type RawExpansionAuditWrapperMeta = RawHwpAuditWrapperMeta
+
+/**
+ * Audit wrapper object extracted from chain-log style inputs.
+ */
+export interface RawHwpAuditWrapper {
+  payloads: RawHwpAuditWrapperPayloadEntry[]
+  meta?: RawHwpAuditWrapperMeta
+  [key: string]: unknown
+}
+
+/**
+ * Neutral alias for audit wrapper input.
+ */
+export type RawExpansionAuditWrapper = RawHwpAuditWrapper
+
+/**
+ * Supported audit input surface: either a raw expansion payload or a chain-log wrapper.
+ */
+export type RawHwpAuditInput = RawHwpExpansion | RawHwpAuditWrapper
+
+/**
+ * Neutral alias for supported audit input.
+ */
+export type RawExpansionAuditInput = RawHwpAuditInput
+
+/**
  * Normalized expansion result
  */
 export interface ProtocolCompatibilityInfo {
@@ -950,7 +1017,7 @@ export function buildRawHwpExpandRequest(
 ): RawExpansionRootRequest | RawExpansionNestedRequest
 
 export function extractRawHwpAuditPayload(
-  input: RawExpansionPayload | Record<string, unknown>,
+  input: RawExpansionAuditInput,
   options?: AuditOptions
 ): AuditPayload
 
@@ -975,7 +1042,7 @@ export function summarizeRawHwpValidation(validation: {
 export const summarizeRawExpansionValidation: typeof summarizeRawHwpValidation
 
 export function buildRawHwpAuditReport(
-  rawHwp: RawExpansionPayload | Record<string, unknown>,
+  rawHwp: RawExpansionAuditInput,
   options?: AuditOptions
 ): AuditReport
 export const buildRawExpansionAuditReport: typeof buildRawHwpAuditReport

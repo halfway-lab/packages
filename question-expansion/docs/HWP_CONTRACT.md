@@ -193,6 +193,12 @@ For TypeScript consumers, the package also exports neutral type aliases alongsid
 - `RawExpansionPath` as an alias of `RawHwpPath`
 - `RawExpansionPayload` as an alias of `RawHwpExpansion`
 - `RawExpansionRequestInput` as an alias of `RawHwpExpandRequestInput`
+- `RawExpansionAuditInput` as an alias of `RawHwpAuditInput`
+
+The audit entry points accept two explicit input shapes:
+
+- a standard compatible raw expansion payload
+- a chain-log style audit wrapper with `payloads` entries and optional `meta.agentMeta`
 
 `validateRawHwpExpansion(...)` is useful when auditing a real live provider payload before wiring it into product logic. It reports structural findings, including non-blocking `info` findings for unknown fields, and when valid also returns the normalized product-facing shape.
 
