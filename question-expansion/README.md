@@ -94,6 +94,8 @@ That means upstream payloads can evolve, while your UI and product logic keep de
 
 The raw-input side is intentionally tolerant: besides HWP-style fields, it also accepts neutral aliases such as `sessionId`, `openQuestions`, `nextSteps`, and `parentId` for adapter-facing payload alignment.
 
+For TypeScript consumers, the package now also exposes neutral type aliases such as `RawExpansionPath`, `RawExpansionPayload`, and `RawExpansionRequestInput`, while keeping legacy `RawHwp*` names for compatibility.
+
 ## Version
 
 Current local package version: `0.1.10`

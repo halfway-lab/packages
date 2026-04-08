@@ -188,6 +188,12 @@ Use:
 
 These return Question Expander-facing structures, not upstream protocol-owned runtime structures.
 
+For TypeScript consumers, the package also exports neutral type aliases alongside legacy HWP-oriented names. For example:
+
+- `RawExpansionPath` as an alias of `RawHwpPath`
+- `RawExpansionPayload` as an alias of `RawHwpExpansion`
+- `RawExpansionRequestInput` as an alias of `RawHwpExpandRequestInput`
+
 `validateRawHwpExpansion(...)` is useful when auditing a real live provider payload before wiring it into product logic. It reports structural findings, including non-blocking `info` findings for unknown fields, and when valid also returns the normalized product-facing shape.
 
 `summarizeRawHwpValidation(...)` turns that audit output into a compact report object that is easier to log, surface in tooling, or attach to adapter diagnostics.
