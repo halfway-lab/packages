@@ -214,27 +214,28 @@ export interface RawHwpAuditAgentMeta {
   sessionId?: string
   provider?: string
   model?: string
-  [key: string]: unknown
 }
+
+/**
+ * Extensible agent metadata carried by audit wrappers.
+ */
+export type RawExpansionAuditAgentMeta = RawHwpAuditAgentMeta & Record<string, unknown>
 
 /**
  * Neutral alias for audit wrapper agent metadata.
  */
-export type RawExpansionAuditAgentMeta = RawHwpAuditAgentMeta
-
 /**
  * Wrapper metadata attached to audit payload collections.
  */
 export interface RawHwpAuditWrapperMeta {
   durationMs?: number
-  agentMeta?: RawHwpAuditAgentMeta
-  [key: string]: unknown
+  agentMeta?: RawExpansionAuditAgentMeta
 }
 
 /**
  * Neutral alias for audit wrapper metadata.
  */
-export type RawExpansionAuditWrapperMeta = RawHwpAuditWrapperMeta
+export type RawExpansionAuditWrapperMeta = RawHwpAuditWrapperMeta & Record<string, unknown>
 
 /**
  * Audit wrapper object extracted from chain-log style inputs.
@@ -242,13 +243,12 @@ export type RawExpansionAuditWrapperMeta = RawHwpAuditWrapperMeta
 export interface RawHwpAuditWrapper {
   payloads: RawHwpAuditWrapperPayloadEntry[]
   meta?: RawHwpAuditWrapperMeta
-  [key: string]: unknown
 }
 
 /**
  * Neutral alias for audit wrapper input.
  */
-export type RawExpansionAuditWrapper = RawHwpAuditWrapper
+export type RawExpansionAuditWrapper = RawHwpAuditWrapper & Record<string, unknown>
 
 /**
  * Supported audit input surface: either a raw expansion payload or a chain-log wrapper.
@@ -270,9 +270,9 @@ export interface ProtocolCompatibilityInfo {
 }
 
 /**
- * Product-facing metadata preserved from raw expansion payloads.
+ * Known product-facing metadata preserved from raw expansion payloads.
  */
-export interface RawExpansionMeta {
+export interface KnownRawExpansionMeta {
   source?: string
   source_kind?: string
   extraction_mode?: string
@@ -318,8 +318,12 @@ export interface RawExpansionMeta {
       }
     }>
   }
-  [key: string]: unknown
 }
+
+/**
+ * Extensible product-facing metadata preserved from raw expansion payloads.
+ */
+export type RawExpansionMeta = KnownRawExpansionMeta & Record<string, unknown>
 
 /**
  * Normalized expansion result
@@ -863,9 +867,25 @@ export interface ProtocolSchema {
   /** Path-level required fields */
   pathRequiredFields: string[]
   /** Feature flags */
-  features: Record<string, boolean>
+  features: ProtocolFeatureFlags
   /** Fallback marker for unknown versions */
   _fallback?: boolean
+}
+
+/**
+ * Known protocol feature flags, while still allowing forward-compatible additions.
+ */
+export interface ProtocolFeatureFlags {
+  semanticGroups?: boolean
+  protocolVersion?: boolean
+  [key: string]: boolean | undefined
+}
+
+/**
+ * Registration input accepted by registerProtocolVersion(...).
+ */
+export interface ProtocolSchemaRegistration extends Partial<ProtocolSchema> {
+  features?: Partial<ProtocolFeatureFlags>
 }
 
 /**
@@ -1186,6 +1206,6 @@ export function buildDescendantScope(
 
 // Protocol Registry
 export function resolveProtocolSchema(protocolVersion?: string): ProtocolSchema
-export function registerProtocolVersion(version: string, schemaConfig: Partial<ProtocolSchema>): void
+export function registerProtocolVersion(version: string, schemaConfig: ProtocolSchemaRegistration): void
 export function getSupportedProtocolVersions(): string[]
 export function getProtocolCompatibility(version?: string): ProtocolCompatibility

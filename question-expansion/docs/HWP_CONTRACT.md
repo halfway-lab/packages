@@ -204,6 +204,8 @@ The audit entry points accept two explicit input shapes:
 
 For newer payloads, `semantic_groups` is also typed as a loose semantic-group structure rather than a bare unknown array. This keeps v0.6.2-style payloads consumable without over-constraining future protocol variants.
 
+The same layering now applies to metadata-facing types: exported TypeScript surfaces distinguish known metadata/feature fields from their extension slots, so consumers get stronger autocomplete without losing forward-compatible unknown keys.
+
 `validateRawHwpExpansion(...)` is useful when auditing a real live provider payload before wiring it into product logic. It reports structural findings, including non-blocking `info` findings for unknown fields, and when valid also returns the normalized product-facing shape.
 
 `summarizeRawHwpValidation(...)` turns that audit output into a compact report object that is easier to log, surface in tooling, or attach to adapter diagnostics.
