@@ -10,6 +10,7 @@
 - Heuristic rule notes: documented
 - Raw expansion validation coverage: includes schema-aware unknown-field auditing at top-level and path-level
 - Neutral raw alias alignment: shipped
+- Validator quality warnings for suspicious-but-usable payload content: shipped
 - Downstream registry integration check: passing
 
 ## What Feels Stable
@@ -17,6 +18,7 @@
 - raw expansion request shaping for HWP-family upstreams
 - raw exploration payload normalization
 - schema-aware raw expansion validation
+- quality-warning surfacing for suspicious but structurally usable payloads
 - live `chain_*.jsonl` audit extraction
 - audit report generation
 - markdown audit output

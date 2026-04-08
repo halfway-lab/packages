@@ -216,6 +216,7 @@ export function extractRawHwpAuditPayload(input = {}, options = {}) {
         ? {
             provider: input.meta.agentMeta.provider,
             model: input.meta.agentMeta.model,
+            sessionId: input.meta.agentMeta.sessionId,
             session_id: input.meta.agentMeta.sessionId
           }
         : {}),

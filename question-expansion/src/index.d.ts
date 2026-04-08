@@ -258,6 +258,59 @@ export interface ValidateOptions {
 }
 
 /**
+ * Parent-path context used for nested raw expansion requests.
+ */
+export interface RawHwpParentPath {
+  id?: string
+  path_title?: string
+  path_summary?: string
+  next_question?: string
+  level?: number
+}
+
+/**
+ * Nested raw expansion request context.
+ */
+export interface RawHwpExpandContext {
+  parent_title?: string
+  parent_summary?: string
+  parent_next_question?: string
+  parent_level?: number
+  [key: string]: unknown
+}
+
+/**
+ * Input payload for building a raw HWP expand request.
+ */
+export interface RawHwpExpandRequestInput {
+  depth?: number
+  question?: string
+  options?: Record<string, unknown>
+  parentPath?: RawHwpParentPath
+  context?: RawHwpExpandContext
+  parent_path_id?: string
+}
+
+/**
+ * Root-level raw HWP expansion request.
+ */
+export interface RawHwpRootExpandRequest {
+  question: string
+  depth: 1
+  options?: Record<string, unknown>
+}
+
+/**
+ * Nested raw HWP expansion request.
+ */
+export interface RawHwpNestedExpandRequest {
+  question?: string
+  parent_path_id: string
+  context: RawHwpExpandContext
+  depth: number
+}
+
+/**
  * Options for audit payload extraction
  */
 export interface AuditOptions {
@@ -407,7 +460,7 @@ export interface AuditReport extends ValidationSummary {
   derivedFields: AuditPayload['meta']['derived_fields']
   protocolVersion: string
   semanticGroupsCount: number
-  meta: Record<string, unknown>
+  meta: RawExpansionMeta
 }
 
 // ==================== Overview Types ====================
@@ -857,25 +910,14 @@ export function matchLiveBranchTypeRule(input: {
 }): MatchedBranchType
 
 // Raw HWP
-export function buildRawHwpExpandRequest(payload: {
-  depth?: number
-  question?: string
-  options?: Record<string, unknown>
-  parentPath?: { id?: string; path_title?: string; path_summary?: string; next_question?: string; level?: number }
-  context?: Record<string, unknown>
-  parent_path_id?: string
-}): {
-  question?: string
-  parent_path_id?: string
-  context: Record<string, unknown>
-  depth: number
-  options?: Record<string, unknown>
-}
+export function buildRawHwpExpandRequest(
+  payload?: RawHwpExpandRequestInput
+): RawHwpRootExpandRequest | RawHwpNestedExpandRequest
 
 export function extractRawHwpAuditPayload(
-  input: Record<string, unknown>,
+  input: RawHwpExpansion | Record<string, unknown>,
   options?: AuditOptions
-): AuditPayload | Record<string, unknown>
+): AuditPayload
 
 export function normalizeRawHwpPath(rawPath: RawHwpPath, options?: NormalizeOptions): NormalizedPath & { tensions: string[]; source: string }
 
@@ -898,7 +940,7 @@ export function summarizeRawHwpValidation(validation: {
 export const summarizeRawExpansionValidation: typeof summarizeRawHwpValidation
 
 export function buildRawHwpAuditReport(
-  rawHwp: Record<string, unknown>,
+  rawHwp: RawHwpExpansion | Record<string, unknown>,
   options?: AuditOptions
 ): AuditReport
 export const buildRawExpansionAuditReport: typeof buildRawHwpAuditReport

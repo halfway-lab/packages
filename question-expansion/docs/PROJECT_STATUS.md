@@ -40,6 +40,7 @@
   - live branch-type heuristics are now isolated into a dedicated strategy module and documented separately
   - MIT license metadata and LICENSE file are now present for release readiness
   - schema-aware raw expansion validation now supports top-level array payloads, alias-consistent path normalization, and unknown field auditing at both top-level and path-level
+  - validator quality warnings now surface blank-but-present fields, out-of-range unfinished scores, unknown branch types, and mismatched version metadata without changing the valid/invalid contract boundary
   - neutral raw aliases such as `sessionId`, `openQuestions`, `nextSteps`, and `parentId` are now recognized as part of the supported input surface
   - npm package `@halfway-lab/question-expansion@0.1.10` has been published and downstream app integration was re-verified against the registry version
 

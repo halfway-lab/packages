@@ -163,6 +163,16 @@ Compatible raw exploration payloads may currently use several equivalent field n
 - unknown path-level fields are also reported as `info` findings to surface possible upstream protocol additions
 - unknown `protocol_version` values trigger a fallback warning while continuing validation against the latest known schema
 - top-level array payloads are supported for both validation and normalization
+- content-quality issues that do not break the structural contract are reported as `warning` findings rather than hard errors
+
+Quality warnings currently include cases such as:
+
+- question or core-question fields that are present but blank
+- path title fields that are present but blank
+- next-question fields that are present but empty, including empty arrays
+- branch types that are structurally present but not recognized in the current branch-type registry
+- unfinished scores outside the expected `0-1` range
+- `protocol_version` and `meta.contractVersion` values that are both semver-like but do not match
 
 ## Package API
 

@@ -109,6 +109,25 @@ test('normalizes raw HWP contract fields into Question Expander structures', () 
     depth: 2
   })
 
+  const nestedWithCustomContext = buildRawHwpExpandRequest({
+    question: '继续往下',
+    depth: 3,
+    parent_path_id: 'raw-2',
+    context: {
+      parent_title: '自定义父路径',
+      trace_id: 'trace-1'
+    }
+  })
+  assert.deepEqual(nestedWithCustomContext, {
+    question: '继续往下',
+    parent_path_id: 'raw-2',
+    context: {
+      parent_title: '自定义父路径',
+      trace_id: 'trace-1'
+    },
+    depth: 3
+  })
+
   assert.throws(
     () => buildRawHwpExpandRequest({
       depth: 2,
@@ -277,6 +296,8 @@ test('normalizes raw HWP contract fields into Question Expander structures', () 
   assert.equal(liveLogPayload.paths[0].branch_type, 'hidden_variable')
   assert.equal(liveLogPayload.meta.source_kind, 'hwp_chain_log_entry')
   assert.equal(liveLogPayload.meta.extraction_mode, 'derived_for_audit')
+  assert.equal(liveLogPayload.meta.sessionId, 'hwp_live_sample_20260331')
+  assert.equal(liveLogPayload.meta.session_id, 'hwp_live_sample_20260331')
   assert.equal(liveLogPayload.meta.derived_fields.paths[0].branch_type_source, 'inferred')
   assert.equal(liveLogPayload.meta.derived_fields.paths[0].heuristic.rule_id, 'hidden_variable_keywords')
   assert.equal(liveLogPayload.meta.derived_fields.paths[0].heuristic.confidence, 'medium')
@@ -1100,6 +1121,57 @@ test('validateRawHwpExpansion handles path-level validation', () => {
   
   // 第三个路径缺少 title（error）
   assert.ok(pathFindings.some(f => f.field === 'paths[2].title' && f.level === 'error'))
+})
+
+test('validateRawHwpExpansion adds quality warnings for suspicious content', () => {
+  const validation = validateRawHwpExpansion({
+    question: '   ',
+    protocol_version: '0.6.2',
+    meta: {
+      contractVersion: '0.6.1'
+    },
+    paths: [
+      {
+        path_id: '1',
+        title: '   ',
+        next_question: [],
+        branch_type: 'unknown_future_branch',
+        unfinished_score: 1.4
+      }
+    ]
+  })
+
+  assert.equal(validation.valid, true)
+  assert.ok(validation.findings.some(f =>
+    f.level === 'warning' &&
+    f.field === 'question' &&
+    /present but blank/i.test(f.message)
+  ))
+  assert.ok(validation.findings.some(f =>
+    f.level === 'warning' &&
+    f.field === 'paths[0].title' &&
+    /present but blank/i.test(f.message)
+  ))
+  assert.ok(validation.findings.some(f =>
+    f.level === 'warning' &&
+    f.field === 'paths[0].next_question' &&
+    /present but empty/i.test(f.message)
+  ))
+  assert.ok(validation.findings.some(f =>
+    f.level === 'warning' &&
+    f.field === 'paths[0].branch_type' &&
+    /not in the current known branch-type registry/i.test(f.message)
+  ))
+  assert.ok(validation.findings.some(f =>
+    f.level === 'warning' &&
+    f.field === 'paths[0].unfinished_score' &&
+    /outside the expected 0-1 range/i.test(f.message)
+  ))
+  assert.ok(validation.findings.some(f =>
+    f.level === 'warning' &&
+    f.field === 'meta.contractVersion' &&
+    /does not match protocol_version/i.test(f.message)
+  ))
 })
 
 test('summarizeRawHwpValidation produces correct summaries', () => {

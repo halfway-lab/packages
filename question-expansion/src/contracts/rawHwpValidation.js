@@ -1,6 +1,7 @@
 import { normalizeRawHwpExpansion } from './rawHwp.js'
 import { hasAnyField, pickFieldWithSchema } from '../utils/fieldHelpers.js'
 import { resolveProtocolSchema } from './protocolRegistry.js'
+import { BRANCH_TYPE_LABELS } from '../branchTypes.js'
 
 const PATH_KNOWN_FIELD_NAMES = [
   'id',
@@ -16,6 +17,34 @@ const PATH_KNOWN_FIELD_NAMES = [
   'tags',
   'parent_id'
 ]
+
+function getDeclaredFieldValue(obj, fieldName, schema) {
+  const aliases = schema?.fieldAliases?.[fieldName] || [fieldName]
+
+  for (const alias of aliases) {
+    if (obj && Object.prototype.hasOwnProperty.call(obj, alias)) {
+      return {
+        alias,
+        value: obj[alias]
+      }
+    }
+  }
+
+  return null
+}
+
+function isBlankString(value) {
+  return typeof value === 'string' && value.trim() === ''
+}
+
+function normalizeComparableVersion(value) {
+  const text = String(value || '').trim()
+  if (!/^[vV]?\d+\.\d+\.\d+$/.test(text)) {
+    return ''
+  }
+
+  return text.replace(/^v/i, '')
+}
 
 /**
  * Validate a raw expansion payload.
@@ -84,6 +113,17 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
     })
   }
 
+  if (!isArrayPayload) {
+    const declaredQuestion = getDeclaredFieldValue(rawHwp, 'core_question', schema)
+    if (declaredQuestion && isBlankString(declaredQuestion.value)) {
+      findings.push({
+        level: 'warning',
+        field: declaredQuestion.alias,
+        message: 'Question / core question field is present but blank.'
+      })
+    }
+  }
+
   // 验证路径级字段（使用 schema.pathRequiredFields）
   const pathRequiredFields = schema.pathRequiredFields || ['path_title', 'title', 'pathTitle']
   if (Array.isArray(rawPaths)) {
@@ -112,6 +152,15 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
         }
       }
 
+      const declaredTitle = getDeclaredFieldValue(path, 'path_title', schema)
+      if (declaredTitle && isBlankString(declaredTitle.value)) {
+        findings.push({
+          level: 'warning',
+          field: `paths[${index}].${declaredTitle.alias}`,
+          message: 'Path title field is present but blank.'
+        })
+      }
+
       // 检查其他可选字段（使用 schema.fieldAliases）
       const nextQuestion = pickFieldWithSchema(path, 'next_question', schema, null)
       if (!nextQuestion) {
@@ -121,6 +170,19 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
           message: 'Path is missing next question / follow-up question.'
         })
       }
+      const declaredNextQuestion = getDeclaredFieldValue(path, 'next_question', schema)
+      if (declaredNextQuestion) {
+        const nextQuestionValue = declaredNextQuestion.value
+        const emptyArrayQuestion = Array.isArray(nextQuestionValue) &&
+          nextQuestionValue.filter(item => String(item || '').trim()).length === 0
+        if (isBlankString(nextQuestionValue) || emptyArrayQuestion) {
+          findings.push({
+            level: 'warning',
+            field: `paths[${index}].${declaredNextQuestion.alias}`,
+            message: 'Path next question field is present but empty.'
+          })
+        }
+      }
 
       const branchType = pickFieldWithSchema(path, 'branch_type', schema, null)
       if (!branchType) {
@@ -128,6 +190,25 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
           level: 'warning',
           field: `paths[${index}].branch_type`,
           message: 'Path is missing branch type / path type.'
+        })
+      } else {
+        const normalizedBranchType = String(branchType).trim()
+        if (normalizedBranchType && !BRANCH_TYPE_LABELS[normalizedBranchType]) {
+          findings.push({
+            level: 'warning',
+            field: `paths[${index}].branch_type`,
+            message: `Path branch type '${normalizedBranchType}' is not in the current known branch-type registry.`
+          })
+        }
+      }
+
+      const unfinishedScore = pickFieldWithSchema(path, 'unfinished_score', schema, null)
+      if (typeof unfinishedScore === 'number' && !Number.isNaN(unfinishedScore) &&
+        (unfinishedScore < 0 || unfinishedScore > 1)) {
+        findings.push({
+          level: 'warning',
+          field: `paths[${index}].unfinished_score`,
+          message: `Path unfinished score ${unfinishedScore} is outside the expected 0-1 range.`
         })
       }
     })
@@ -147,6 +228,23 @@ export function validateRawHwpExpansion(rawHwp = {}, options = {}) {
         level: 'warning',
         field: 'protocol_version',
         message: `Protocol version '${protocolVersion}' is not explicitly supported. Falling back to version '${schema.version}'. Some fields may not be correctly validated.`
+      })
+    }
+  }
+
+  if (!isArrayPayload) {
+    const metaContractVersion = rawHwp?.meta?.contractVersion || rawHwp?.meta?.contract_version
+    const normalizedProtocolVersion = normalizeComparableVersion(protocolVersion)
+    const normalizedContractVersion = normalizeComparableVersion(metaContractVersion)
+    if (
+      normalizedProtocolVersion &&
+      normalizedContractVersion &&
+      normalizedProtocolVersion !== normalizedContractVersion
+    ) {
+      findings.push({
+        level: 'warning',
+        field: 'meta.contractVersion',
+        message: `meta.contractVersion '${metaContractVersion}' does not match protocol_version '${protocolVersion}'.`
       })
     }
   }
