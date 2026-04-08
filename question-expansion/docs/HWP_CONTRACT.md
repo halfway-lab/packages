@@ -121,6 +121,8 @@ Root expansion request:
 }
 ```
 
+For TypeScript consumers, the request `options` shape is now exported as `RawExpansionRequestOptions`. It currently documents known stable keys such as `max_paths` / `maxPaths` while still allowing adapter-specific extensions.
+
 Nested expansion request:
 
 ```json
@@ -199,6 +201,8 @@ The audit entry points accept two explicit input shapes:
 
 - a standard compatible raw expansion payload
 - a chain-log style audit wrapper with `payloads` entries and optional `meta.agentMeta`
+
+For newer payloads, `semantic_groups` is also typed as a loose semantic-group structure rather than a bare unknown array. This keeps v0.6.2-style payloads consumable without over-constraining future protocol variants.
 
 `validateRawHwpExpansion(...)` is useful when auditing a real live provider payload before wiring it into product logic. It reports structural findings, including non-blocking `info` findings for unknown fields, and when valid also returns the normalized product-facing shape.
 

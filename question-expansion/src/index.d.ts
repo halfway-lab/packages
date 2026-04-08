@@ -47,6 +47,23 @@ export type ConfidenceLevel = 'high' | 'medium' | 'low' | 'exact'
  */
 export type FindingLevel = 'error' | 'warning' | 'info'
 
+/**
+ * Stable string-or-number identifier used by runtime helper maps.
+ */
+export type PathIdentifier = string | number
+
+/**
+ * Minimal id-bearing record accepted by tree/runtime helpers.
+ */
+export interface PathReference {
+  id: PathIdentifier
+}
+
+/**
+ * Expanded/open state map keyed by path id.
+ */
+export type OpenPathMap = Record<string, boolean>
+
 // ==================== Path Types ====================
 
 /**
@@ -124,6 +141,24 @@ export interface RawHwpPath {
  */
 export type RawExpansionPath = RawHwpPath
 
+/**
+ * Loose-but-structured semantic group shape carried by newer raw payloads.
+ */
+export interface SemanticGroupLike {
+  id?: string
+  name?: string
+  label?: string
+  title?: string
+  summary?: string
+  description?: string
+  paths?: string[]
+  path_ids?: string[]
+  pathIds?: string[]
+  items?: string[]
+  tags?: string[]
+  [key: string]: unknown
+}
+
 // ==================== Expansion Types ====================
 
 /**
@@ -144,8 +179,8 @@ export interface RawHwpExpansion {
   nextQuestions?: string[]
   protocol_version?: string
   protocolVersion?: string
-  semantic_groups?: unknown[]
-  semanticGroups?: unknown[]
+  semantic_groups?: SemanticGroupLike[]
+  semanticGroups?: SemanticGroupLike[]
   group_count?: number
   groupCount?: number
   cross_domain_contamination?: number
@@ -372,7 +407,7 @@ export type RawExpansionRequestContext = RawHwpExpandContext
 export interface RawHwpExpandRequestInput {
   depth?: number
   question?: string
-  options?: Record<string, unknown>
+  options?: RawHwpExpandRequestOptions
   parentPath?: RawHwpParentPath
   context?: RawHwpExpandContext
   parent_path_id?: string
@@ -384,12 +419,27 @@ export interface RawHwpExpandRequestInput {
 export type RawExpansionRequestInput = RawHwpExpandRequestInput
 
 /**
+ * Known option keys accepted by raw expansion request builders.
+ * Additional adapter-specific keys are preserved for compatibility.
+ */
+export interface RawHwpExpandRequestOptions {
+  max_paths?: number
+  maxPaths?: number
+  [key: string]: unknown
+}
+
+/**
+ * Neutral alias for raw expansion request options.
+ */
+export type RawExpansionRequestOptions = RawHwpExpandRequestOptions
+
+/**
  * Root-level raw HWP expansion request.
  */
 export interface RawHwpRootExpandRequest {
   question: string
   depth: 1
-  options?: Record<string, unknown>
+  options?: RawHwpExpandRequestOptions
 }
 
 /**
@@ -614,10 +664,10 @@ export interface ExpansionViewModel {
 export interface ExpansionViewModelOptions {
   question: string
   rootPaths: NormalizedPath[]
-  childPathsMap?: Record<string, NormalizedPath[]>
+  childPathsMap?: ChildPathsMap
   focusedPathId?: string | null
   focusModeEnabled?: boolean
-  parentPathMap?: Record<string, string | null>
+  parentPathMap?: ParentMap
   pauseCards?: Record<string, PauseCard>
 }
 
@@ -730,10 +780,10 @@ export interface SessionRecord {
   id: string
   question: string
   rootPaths: NormalizedPath[]
-  childPathsMap: Record<string, NormalizedPath[]>
-  openPathIds: Record<string, boolean>
+  childPathsMap: ChildPathsMap
+  openPathIds: OpenPathMap
   pauseCards: Record<string, PauseCard>
-  parentPathMap: Record<string, string | null>
+  parentPathMap: ParentMap
   focusedPathId: string | null
   rootPathCount: number
   updatedAt: string
@@ -1057,7 +1107,7 @@ export function buildPauseSummary(
     childPathsMap?: ChildPathsMap
     focusedPathId?: string | null
     parentPathMap?: ParentMap
-    openPathIds?: Record<string, boolean>
+    openPathIds?: OpenPathMap
     pauseCards?: Record<string, PauseCard>
     question?: string
   }
@@ -1068,7 +1118,7 @@ export function buildPathMarkdown(options: {
   level?: number
   pauseCards?: Record<string, PauseCard>
   childPathsMap?: ChildPathsMap
-  openPathIds?: Record<string, boolean>
+  openPathIds?: OpenPathMap
 }): string
 
 export function buildSessionSummary(options: {
@@ -1082,11 +1132,11 @@ export function buildSessionSummary(options: {
 
 export function buildExplorationContext(
   rootPaths?: NormalizedPath[],
-  childPathsMap?: Record<string, NormalizedPath[]>,
+  childPathsMap?: ChildPathsMap,
   options?: {
     focusedPathId?: string | null
-    parentPathMap?: Record<string, string | null>
-    openPathIds?: Record<string, boolean>
+    parentPathMap?: ParentMap
+    openPathIds?: OpenPathMap
     pauseCards?: Record<string, PauseCard>
     question?: string
   }
@@ -1099,7 +1149,7 @@ export function buildSessionRecord(
     question: string
     rootPaths?: NormalizedPath[]
     childPathsMap?: ChildPathsMap
-    openPathIds?: Record<string, boolean>
+    openPathIds?: OpenPathMap
     pauseCards?: Record<string, PauseCard>
     parentPathMap?: ParentMap
     focusedPathId?: string | null
@@ -1117,8 +1167,8 @@ export function formatSessionTimestamp(value: string | number | Date | null | un
 
 // Runtime
 export function createSessionId(options?: SessionIdOptions): string
-export function buildRootParentMap(paths: Array<{ id: string | number }>): ParentMap
-export function buildChildParentMap(parentId: string | number, children: Array<{ id: string | number }>): ParentMap
+export function buildRootParentMap(paths: PathReference[]): ParentMap
+export function buildChildParentMap(parentId: PathIdentifier, children: PathReference[]): ParentMap
 
 // Status
 export function buildStatusMessage(info?: StatusInfo): string
@@ -1126,12 +1176,12 @@ export function buildStatusMessage(info?: StatusInfo): string
 // Tree Traversal Utilities
 export function flattenPaths(
   rootPaths: NormalizedPath[],
-  childPathsMap: Record<string, NormalizedPath[]>
+  childPathsMap: ChildPathsMap
 ): NormalizedPath[]
 
 export function buildDescendantScope(
   pathId: string,
-  childPathsMap: Record<string, NormalizedPath[]>
+  childPathsMap: ChildPathsMap
 ): Set<string>
 
 // Protocol Registry
