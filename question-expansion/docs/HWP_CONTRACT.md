@@ -210,6 +210,8 @@ The partial/streaming entry points accept streamed JSON text or path-like fragme
 
 Those helpers are intentionally limited to contract extraction and normalization. They do not own fetch, SSE, or any transport-layer behavior.
 
+For TypeScript consumers, the package also exports a streaming callback/event contract through `RawExpansionStreamCallbacks` and `RawExpansionStreamEvent`. This gives adapters and app code one shared package-owned vocabulary for content chunks, partial paths, reasoning chunks, and final payload delivery without moving transport ownership into the package.
+
 For newer payloads, `semantic_groups` is also typed as a loose semantic-group structure rather than a bare unknown array. This keeps v0.6.2-style payloads consumable without over-constraining future protocol variants.
 
 The same layering now applies to metadata-facing types: exported TypeScript surfaces distinguish known metadata/feature fields from their extension slots, so consumers get stronger autocomplete without losing forward-compatible unknown keys.

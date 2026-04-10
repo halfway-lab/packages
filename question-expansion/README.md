@@ -341,6 +341,14 @@ console.log(onePath.id)
 
 These partial helpers are package-owned streaming contract utilities. They are meant for extracting and normalizing path fragments during streaming, but they do not own fetch, SSE, or transport concerns.
 
+For TypeScript consumers, the package also exports `RawExpansionStreamCallbacks` and `RawExpansionStreamEvent` so app-side adapters and UI code can share one callback vocabulary for:
+
+- `onContentChunk`
+- `onPartialPath`
+- `onThinkingChunk`
+- `onFinalPayload`
+- `onEvent`
+
 ## What Makes It Different
 
 - It is tolerant by default: unknown fields become findings instead of hard failures.

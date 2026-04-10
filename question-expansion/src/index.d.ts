@@ -169,6 +169,14 @@ export interface PartialRawExpansionPath extends RawHwpPath {
 export type PartialRawExpansionObject = Record<string, unknown>
 
 /**
+ * Options for streamed partial extraction helpers.
+ */
+export interface PartialExpansionExtractOptions {
+  alreadyExtracted?: number
+  maxObjects?: number
+}
+
+/**
  * Loose-but-structured semantic group shape carried by newer raw payloads.
  */
 export interface SemanticGroupLike {
@@ -581,6 +589,69 @@ export interface InferredBranchType {
 export interface MatchedBranchType extends InferredBranchType {
   /** The matched rule object */
   rule: HeuristicRule | null
+}
+
+// ==================== Streaming Types ====================
+
+/**
+ * Streaming content lifecycle event kinds recognized by the package contract.
+ */
+export type StreamingEventKind =
+  | 'content_chunk'
+  | 'partial_path'
+  | 'thinking_chunk'
+  | 'final_payload'
+
+/**
+ * Content chunk emitted during streaming generation.
+ */
+export interface StreamingContentChunkEvent {
+  kind: 'content_chunk'
+  chunk: string
+}
+
+/**
+ * Partial path emitted once a full top-level path object can be recovered.
+ */
+export interface StreamingPartialPathEvent {
+  kind: 'partial_path'
+  path: NormalizedPath & { tensions: string[]; source: string }
+}
+
+/**
+ * Thinking/reasoning chunk emitted by a reasoner-style upstream.
+ */
+export interface StreamingThinkingChunkEvent {
+  kind: 'thinking_chunk'
+  chunk: string
+}
+
+/**
+ * Final raw payload emitted once generation completes.
+ */
+export interface StreamingFinalPayloadEvent {
+  kind: 'final_payload'
+  payload: RawExpansionPayload | RawExpansionPayload[]
+}
+
+/**
+ * Union of package-owned streaming lifecycle events.
+ */
+export type RawExpansionStreamEvent =
+  | StreamingContentChunkEvent
+  | StreamingPartialPathEvent
+  | StreamingThinkingChunkEvent
+  | StreamingFinalPayloadEvent
+
+/**
+ * Shared callback contract for streamed raw expansion generation.
+ */
+export interface RawExpansionStreamCallbacks {
+  onContentChunk?: (chunk: string) => void
+  onPartialPath?: (path: NormalizedPath & { tensions: string[]; source: string }) => void
+  onThinkingChunk?: (chunk: string) => void
+  onFinalPayload?: (payload: RawExpansionPayload | RawExpansionPayload[]) => void
+  onEvent?: (event: RawExpansionStreamEvent) => void
 }
 
 // ==================== Audit Types ====================
@@ -1116,7 +1187,7 @@ export function matchLiveBranchTypeRule(input: {
 // Partial / Streaming Expansion
 export function extractPartialRawExpansionObjects(
   text?: string,
-  options?: { alreadyExtracted?: number }
+  options?: PartialExpansionExtractOptions
 ): PartialRawExpansionObject[]
 
 export function createPartialRawExpansionPath(
@@ -1131,7 +1202,7 @@ export function normalizePartialExpansionPath(
 
 export function extractPartialExpansionPaths(
   text?: string,
-  options?: NormalizeOptions & { alreadyExtracted?: number }
+  options?: NormalizeOptions & PartialExpansionExtractOptions
 ): Array<NormalizedPath & { tensions: string[]; source: string }>
 
 // Raw HWP
