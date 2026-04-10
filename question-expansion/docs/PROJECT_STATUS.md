@@ -7,7 +7,7 @@
 - Repo type: package inside the Halfway-Lab workspace
 - Maintainer role: product-domain package
 - Current package version:
-  - `0.1.10`
+  - `0.1.11`
 - Relationship to HWP:
   - downstream interpretation layer for Question Expander
   - not a protocol source of truth
@@ -43,6 +43,7 @@
   - validator quality warnings now surface blank-but-present fields, out-of-range unfinished scores, unknown branch types, and mismatched version metadata without changing the valid/invalid contract boundary
   - neutral raw aliases such as `sessionId`, `openQuestions`, `nextSteps`, and `parentId` are now recognized as part of the supported input surface
   - npm package `@halfway-lab/question-expansion@0.1.10` has been published and downstream app integration was re-verified against the registry version
+  - package-owned partial streaming path helpers now exist so downstream apps can align streaming path extraction with package normalization rules
 
 ## Entry Points
 
