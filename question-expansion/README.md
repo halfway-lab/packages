@@ -35,6 +35,7 @@ Why use it:
 
 - Stable output contract for Question Expander-style path exploration
 - Tolerant validation with schema-aware fallback and unknown-field findings
+- Content-quality warnings for suspicious-but-usable payloads
 - Built-in helpers for overviews, session artifacts, view models, and payload audits
 
 ## Next Step
@@ -96,6 +97,8 @@ The raw-input side is intentionally tolerant: besides HWP-style fields, it also 
 
 For TypeScript consumers, the package now also exposes neutral type aliases such as `RawExpansionPath`, `RawExpansionPayload`, and `RawExpansionRequestInput`, while keeping legacy `RawHwp*` names for compatibility.
 
+The package is also protocol-version aware. When compatible payloads include fields such as `protocol_version` and `semantic_groups`, validation will select the matching schema when available and fall back safely when the version is unknown.
+
 ## Version
 
 Current local package version: `0.1.10`
@@ -120,6 +123,7 @@ MIT
 - Raw expansion request shaping with `buildRawHwpExpandRequest(...)`
 - Raw exploration payload normalization for object or top-level array payloads
 - Schema-aware validation with protocol-version fallback
+- Content-quality warning surfacing for blank-but-present fields, empty next-question arrays, unknown branch types, and version-metadata mismatches
 - Unknown-field auditing at both top-level and path-level
 - Overview and session artifact generation for Question Expander-style UX
 
@@ -236,6 +240,8 @@ npm run audit:raw-expansion -- ./payload.json --format markdown
 npm run audit:raw-expansion -- ./chain_2026-03-31.jsonl
 ```
 
+The markdown audit output includes extraction notes and heuristic branch-type details when the input comes from a live `chain_*.jsonl` wrapper. Those heuristics are audit-only and are documented in `docs/HEURISTICS.md`.
+
 Audit a chain-log style wrapper from code:
 
 ```js
@@ -295,6 +301,8 @@ console.log(viewModel.structuredOverview)
 ```
 
 The audit entry points accept either a raw expansion payload or a wrapper input with `payloads` and optional `meta.agentMeta`. For TypeScript consumers, that surface is exported as `RawExpansionAuditInput`.
+
+If you need the full contract details for schema selection, optional `v0.6.2` fields, supported aliases, and warning behavior, see `docs/HWP_CONTRACT.md`.
 
 ## What Makes It Different
 
