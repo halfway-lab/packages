@@ -7,7 +7,7 @@
 - Repo type: package inside the Halfway-Lab workspace
 - Maintainer role: product-domain package
 - Current package version:
-  - `0.1.11`
+  - `0.1.12`
 - Relationship to HWP:
   - downstream interpretation layer for Question Expander
   - not a protocol source of truth
@@ -44,6 +44,7 @@
   - neutral raw aliases such as `sessionId`, `openQuestions`, `nextSteps`, and `parentId` are now recognized as part of the supported input surface
   - npm package `@halfway-lab/question-expansion@0.1.10` has been published and downstream app integration was re-verified against the registry version
   - package-owned partial streaming path helpers now exist so downstream apps can align streaming path extraction with package normalization rules
+  - package-owned streaming event helpers and partial tree update helpers now exist so streamed path lifecycle and incremental tree application can start moving out of app-local code
 
 ## Entry Points
 

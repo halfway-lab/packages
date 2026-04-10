@@ -2,8 +2,8 @@
 
 ## Current State
 
-- Local package version: `0.1.11`
-- Published npm version: `0.1.10`
+- Local package version: `0.1.12`
+- Published npm version: `0.1.11`
 - Package test status: passing
 - Live audit workflow: implemented
 - Heuristic rule table: separated into its own module
@@ -13,6 +13,7 @@
 - Validator quality warnings for suspicious-but-usable payload content: shipped
 - Downstream registry integration check: passing
 - Partial streaming path helpers: shipped locally, pending npm publish
+- Streaming callback and partial tree runtime helpers: shipped locally, pending npm publish
 
 ## What Feels Stable
 
@@ -24,6 +25,7 @@
 - audit report generation
 - markdown audit output
 - branch-type heuristic table and rule explanations
+- package-owned partial streaming helpers and runtime tree update helpers
 
 ## What Is Still Intentionally Provisional
 
@@ -42,11 +44,11 @@ Before the next publish, confirm:
 
 ## Recommended Next Version Scope
 
-Target next version: `0.1.11`
+Target next version: `0.1.12`
 
 Suggested contents:
 
-- publish the new partial streaming path helpers
+- publish the new streaming contract and runtime helpers
 - tighten published package contents with an explicit `files` allowlist
 - keep neutral raw-expansion wording consistent across public docs and CLI output
 - publish only when the bundled changes are user-visible, not for isolated wording nits
