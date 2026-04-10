@@ -289,44 +289,77 @@ export function mergeStreamAndFinalPaths(streamPaths = [], finalPaths = [], opti
 }
 
 function applyFinalOrder(streamPaths, finalPaths, streamById, finalById) {
+  // 分离空 ID 路径（空 ID 路径不参与 ID 匹配，直接保留）
+  const streamPathsWithId = streamPaths.filter(p => String(p.id || '').trim() !== '')
+  const streamPathsWithoutId = streamPaths.filter(p => String(p.id || '').trim() === '')
+  const finalPathsWithId = finalPaths.filter(p => String(p.id || '').trim() !== '')
+  const finalPathsWithoutId = finalPaths.filter(p => String(p.id || '').trim() === '')
+
   // 以 finalPaths 顺序为准
   // 对于每个 finalPath：如果 streamPaths 中有同 ID，合并（final 数据优先，保留 stream 的渲染状态）
-  const merged = finalPaths.map(fp => {
+  const merged = finalPathsWithId.map(fp => {
     const sp = streamById.get(String(fp.id || ''))
     return sp ? { ...sp, ...fp } : fp  // final 数据覆盖 stream
   })
-  // 追加 streamPaths 中有但 finalPaths 中没有的路径
-  for (const sp of streamPaths) {
+  // 追加 streamPaths 中有但 finalPaths 中没有的路径（仅限有 ID 的）
+  for (const sp of streamPathsWithId) {
     if (!finalById.has(String(sp.id || ''))) {
       merged.push(sp)
     }
   }
+  // 追加空 ID 路径到末尾
+  merged.push(...finalPathsWithoutId)
+  merged.push(...streamPathsWithoutId)
   return merged
 }
 
 function applyStreamOrder(streamPaths, finalPaths, streamById, finalById) {
+  // 分离空 ID 路径（空 ID 路径不参与 ID 匹配，直接保留）
+  const streamPathsWithId = streamPaths.filter(p => String(p.id || '').trim() !== '')
+  const streamPathsWithoutId = streamPaths.filter(p => String(p.id || '').trim() === '')
+  const finalPathsWithId = finalPaths.filter(p => String(p.id || '').trim() !== '')
+  const finalPathsWithoutId = finalPaths.filter(p => String(p.id || '').trim() === '')
+
   // 以 streamPaths 顺序为准，用 finalPaths 更新字段
-  const merged = streamPaths.map(sp => {
+  const merged = streamPathsWithId.map(sp => {
     const fp = finalById.get(String(sp.id || ''))
     return fp ? { ...sp, ...fp } : sp  // final 数据覆盖
   })
-  // 追加 finalPaths 中有但 streamPaths 中没有的路径
-  for (const fp of finalPaths) {
+  // 追加 finalPaths 中有但 streamPaths 中没有的路径（仅限有 ID 的）
+  for (const fp of finalPathsWithId) {
     if (!streamById.has(String(fp.id || ''))) {
       merged.push(fp)
     }
   }
+  // 追加空 ID 路径到末尾
+  merged.push(...finalPathsWithoutId)
+  merged.push(...streamPathsWithoutId)
   return merged
 }
 
 function applySmartOrder(streamPaths, finalPaths, streamById, finalById) {
-  // ID 集合完全一致时用 final_order，否则用 stream_order
-  const streamIds = new Set(streamPaths.map(p => String(p.id || '')))
-  const finalIds = new Set(finalPaths.map(p => String(p.id || '')))
+  // 分离空 ID 路径（空 ID 路径不参与 ID 匹配，直接保留）
+  const streamPathsWithId = streamPaths.filter(p => String(p.id || '').trim() !== '')
+  const finalPathsWithId = finalPaths.filter(p => String(p.id || '').trim() !== '')
 
+  // ID 集合完全一致时用 final_order，否则用 stream_order
+  const streamIds = new Set(streamPathsWithId.map(p => String(p.id || '')))
+  const finalIds = new Set(finalPathsWithId.map(p => String(p.id || '')))
+
+  // 使用有 ID 的路径进行策略判断和合并
+  let merged
   if (streamIds.size === finalIds.size &&
       [...streamIds].every(id => finalIds.has(id))) {
-    return applyFinalOrder(streamPaths, finalPaths, streamById, finalById)
+    merged = applyFinalOrder(streamPathsWithId, finalPathsWithId, streamById, finalById)
+  } else {
+    merged = applyStreamOrder(streamPathsWithId, finalPathsWithId, streamById, finalById)
   }
-  return applyStreamOrder(streamPaths, finalPaths, streamById, finalById)
+
+  // 追加空 ID 路径到末尾
+  const streamPathsWithoutId = streamPaths.filter(p => String(p.id || '').trim() === '')
+  const finalPathsWithoutId = finalPaths.filter(p => String(p.id || '').trim() === '')
+  merged.push(...finalPathsWithoutId)
+  merged.push(...streamPathsWithoutId)
+
+  return merged
 }

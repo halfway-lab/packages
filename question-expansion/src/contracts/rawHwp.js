@@ -108,7 +108,7 @@ export function normalizeRawHwpPath(rawPath = {}, options = {}) {
       path_title: pickFieldWithSchema(rawPath, 'path_title', schema, null),
       path_summary: pickFieldWithSchema(rawPath, 'path_summary', schema, null),
       next_question: Array.isArray(normalizedNextQuestion)
-        ? normalizedNextQuestion[0]
+        ? (normalizedNextQuestion[0] || null)
         : normalizedNextQuestion,
       branch_type: pickFieldWithSchema(rawPath, 'branch_type', schema, null),
       unfinished_score: pickFieldWithSchema(rawPath, 'unfinished_score', schema, null),
@@ -150,7 +150,7 @@ export function normalizeRawHwpExpansion(rawHwp = {}, options = {}) {
     throw new Error('Raw HWP response did not contain a paths array')
   }
 
-  const expansionPaths = rawPaths
+  let expansionPaths = rawPaths
     .filter(Boolean)
     .map((path, index) => normalizeRawHwpPath(path, {
       ...options,
