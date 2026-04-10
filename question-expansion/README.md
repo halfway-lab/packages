@@ -304,6 +304,43 @@ The audit entry points accept either a raw expansion payload or a wrapper input 
 
 If you need the full contract details for schema selection, optional `v0.6.2` fields, supported aliases, and warning behavior, see `docs/HWP_CONTRACT.md`.
 
+Normalize partial paths from streamed JSON text:
+
+```js
+import {
+  extractPartialExpansionPaths,
+  normalizePartialExpansionPath
+} from '@halfway-lab/question-expansion'
+
+const streamedText = `{
+  "paths": [
+    {
+      "path_id": "path-1",
+      "title": "Reframe the market-entry assumption",
+      "openQuestions": ["Which constraint matters more than market size?"]
+    }
+  ]
+}`
+
+const partialPaths = extractPartialExpansionPaths(streamedText, {
+  level: 1,
+  idSeed: 'root-question'
+})
+
+const onePath = normalizePartialExpansionPath({
+  title: 'Map the hidden dependency',
+  nextSteps: ['Which dependency sets the real limit?']
+}, {
+  level: 2,
+  idSeed: 'path-1'
+})
+
+console.log(partialPaths[0].next_question)
+console.log(onePath.id)
+```
+
+These partial helpers are package-owned streaming contract utilities. They are meant for extracting and normalizing path fragments during streaming, but they do not own fetch, SSE, or transport concerns.
+
 ## What Makes It Different
 
 - It is tolerant by default: unknown fields become findings instead of hard failures.
@@ -317,6 +354,7 @@ src/
   branchTypes.js
   contracts/
     liveBranchTypeHeuristics.js
+    partialExpansion.js
     paths.js
     rawHwp.js
   overview/

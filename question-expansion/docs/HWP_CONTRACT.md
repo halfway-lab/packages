@@ -181,6 +181,10 @@ Quality warnings currently include cases such as:
 Use:
 
 - `buildRawHwpExpandRequest(payload)`
+- `extractPartialRawExpansionObjects(text, options?)`
+- `createPartialRawExpansionPath(path, options?)`
+- `normalizePartialExpansionPath(path, options?)`
+- `extractPartialExpansionPaths(text, options?)`
 - `extractRawHwpAuditPayload(input, options?)`
 - `normalizeRawHwpPath(rawPath, options?)`
 - `normalizeRawHwpExpansion(rawResponse, options?)`
@@ -201,6 +205,10 @@ The audit entry points accept two explicit input shapes:
 
 - a standard compatible raw expansion payload
 - a chain-log style audit wrapper with `payloads` entries and optional `meta.agentMeta`
+
+The partial/streaming entry points accept streamed JSON text or path-like fragments and return Question Expander-facing path objects as soon as a full top-level path object can be recovered from the `paths` array.
+
+Those helpers are intentionally limited to contract extraction and normalization. They do not own fetch, SSE, or any transport-layer behavior.
 
 For newer payloads, `semantic_groups` is also typed as a loose semantic-group structure rather than a bare unknown array. This keeps v0.6.2-style payloads consumable without over-constraining future protocol variants.
 

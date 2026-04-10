@@ -19,11 +19,15 @@ import {
   buildRawExpansionAuditReport,
   buildRawHwpAuditReport,
   createSessionId,
+  createPartialRawExpansionPath,
   extractRawHwpAuditPayload,
+  extractPartialExpansionPaths,
+  extractPartialRawExpansionObjects,
   getBranchTypeLabel,
   inferLiveBranchType,
   matchLiveBranchTypeRule,
   normalizeExpansionPath,
+  normalizePartialExpansionPath,
   normalizeRawExpansion,
   normalizeRawHwpExpansion,
   normalizeRawHwpPath,
@@ -1550,6 +1554,94 @@ test('neutral raw expansion APIs handle generic, HWP-style, and malformed payloa
   assert.equal(malformedValidation.valid, false)
   assert.equal(malformedValidation.normalized, null)
   assert.ok(malformedValidation.findings.some(item => item.level === 'error'))
+})
+
+test('partial streaming helpers extract complete path objects from streamed text', () => {
+  const streamedText = `{
+    "question": "Should we expand internationally this year?",
+    "paths": [
+      {
+        "path_id": "path-1",
+        "title": "Reframe the market-entry assumption",
+        "follow_up_question": "Which constraint matters more than market size?"
+      },
+      {
+        "path_id": "path-2",
+        "title": "Map the hidden operating dependency",
+        "follow_up_question": "Which operating dependency decides the pace?"
+      }
+    ]
+  }`
+
+  const firstOnly = extractPartialRawExpansionObjects(streamedText, { alreadyExtracted: 1 })
+  assert.equal(firstOnly.length, 1)
+  assert.equal(firstOnly[0].path_id, 'path-2')
+
+  const allObjects = extractPartialRawExpansionObjects(streamedText)
+  assert.equal(allObjects.length, 2)
+  assert.equal(allObjects[0].title, 'Reframe the market-entry assumption')
+  assert.equal(allObjects[1].follow_up_question, 'Which operating dependency decides the pace?')
+})
+
+test('partial streaming helpers normalize streamed paths into stable product paths', () => {
+  const partialRawPath = createPartialRawExpansionPath({
+    path_id: 'stream-1',
+    title: 'Reopen the framing assumption',
+    openQuestions: ['Which assumption should we test first?'],
+    path_type: 'premise_shift',
+    risk_hint: 'The framing may hide the operating constraint.',
+    labels: ['strategy'],
+    tensions: ['Scale may not be the decisive variable.']
+  }, {
+    level: 2,
+    idSeed: 'stream'
+  })
+
+  assert.equal(partialRawPath.path_id, 'stream-1')
+  assert.equal(partialRawPath.follow_up_question, 'Which assumption should we test first?')
+  assert.deepEqual(partialRawPath.open_questions, ['Which assumption should we test first?'])
+  assert.equal(partialRawPath.branch_type, 'premise_shift')
+
+  const normalizedPartial = normalizePartialExpansionPath(partialRawPath, {
+    level: 2,
+    timestamp: '2026-04-10T00:00:00.000Z',
+    idSeed: 'stream'
+  })
+
+  assert.equal(normalizedPartial.id, 'stream-1')
+  assert.equal(normalizedPartial.path_title, 'Reopen the framing assumption')
+  assert.equal(normalizedPartial.next_question, 'Which assumption should we test first?')
+  assert.equal(normalizedPartial.branch_type, 'premise_shift')
+  assert.deepEqual(normalizedPartial.tags, ['strategy'])
+  assert.deepEqual(normalizedPartial.tensions, ['Scale may not be the decisive variable.'])
+  assert.equal(normalizedPartial.source, 'raw_hwp')
+
+  const streamedText = `{
+    "paths": [
+      {
+        "path_id": "stream-1",
+        "title": "Reopen the framing assumption",
+        "openQuestions": ["Which assumption should we test first?"],
+        "path_type": "premise_shift"
+      },
+      {
+        "title": "Map the hidden dependency",
+        "nextSteps": ["Which dependency sets the real limit?"]
+      }
+    ]
+  }`
+
+  const normalizedFromText = extractPartialExpansionPaths(streamedText, {
+    level: 2,
+    timestamp: '2026-04-10T00:00:00.000Z',
+    idSeed: 'stream'
+  })
+
+  assert.equal(normalizedFromText.length, 2)
+  assert.equal(normalizedFromText[0].id, 'stream-1')
+  assert.equal(normalizedFromText[0].next_question, 'Which assumption should we test first?')
+  assert.equal(normalizedFromText[1].id, 'stream-2-2')
+  assert.equal(normalizedFromText[1].next_question, 'Which dependency sets the real limit?')
 })
 
 // ============================================================================

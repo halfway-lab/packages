@@ -152,6 +152,23 @@ export interface RawHwpPath {
 export type RawExpansionPath = RawHwpPath
 
 /**
+ * Raw path shape produced during partial/streaming extraction before final payload completion.
+ */
+export interface PartialRawExpansionPath extends RawHwpPath {
+  openQuestions?: string[]
+  open_questions?: string[]
+  nextSteps?: string[]
+  next_steps?: string[]
+  parentId?: string | null
+  parent_id?: string | null
+}
+
+/**
+ * Object-shaped path fragment parsed from a streamed JSON buffer.
+ */
+export type PartialRawExpansionObject = Record<string, unknown>
+
+/**
  * Loose-but-structured semantic group shape carried by newer raw payloads.
  */
 export interface SemanticGroupLike {
@@ -1095,6 +1112,27 @@ export function matchLiveBranchTypeRule(input: {
   nextQuestion?: string
   blindSpotHint?: string
 }): MatchedBranchType
+
+// Partial / Streaming Expansion
+export function extractPartialRawExpansionObjects(
+  text?: string,
+  options?: { alreadyExtracted?: number }
+): PartialRawExpansionObject[]
+
+export function createPartialRawExpansionPath(
+  path?: PartialRawExpansionObject,
+  options?: { level?: number; index?: number; idSeed?: string }
+): PartialRawExpansionPath
+
+export function normalizePartialExpansionPath(
+  path?: PartialRawExpansionObject,
+  options?: NormalizeOptions
+): NormalizedPath & { tensions: string[]; source: string }
+
+export function extractPartialExpansionPaths(
+  text?: string,
+  options?: NormalizeOptions & { alreadyExtracted?: number }
+): Array<NormalizedPath & { tensions: string[]; source: string }>
 
 // Raw HWP
 export function buildRawHwpExpandRequest(

@@ -25,6 +25,14 @@ export { normalizeExpansionPath, normalizeExpansionResponse } from './contracts/
 // Heuristics
 export { LIVE_BRANCH_TYPE_RULES, inferLiveBranchType, matchLiveBranchTypeRule } from './contracts/liveBranchTypeHeuristics.js'
 
+// Partial / Streaming Expansion Helpers
+export {
+  extractPartialRawExpansionObjects,
+  createPartialRawExpansionPath,
+  normalizePartialExpansionPath,
+  extractPartialExpansionPaths
+} from './contracts/partialExpansion.js'
+
 // Raw Expansion Contract
 export {
   buildRawHwpExpandRequest,
