@@ -1581,6 +1581,21 @@ test('partial streaming helpers extract complete path objects from streamed text
   assert.equal(allObjects.length, 2)
   assert.equal(allObjects[0].title, 'Reframe the market-entry assumption')
   assert.equal(allObjects[1].follow_up_question, 'Which operating dependency decides the pace?')
+
+  const aliasText = `{
+    "expansion_paths": [
+      { "path_id": "alias-1", "title": "Use expansion_paths alias" },
+      { "path_id": "alias-2", "title": "Still extracted" }
+    ]
+  }`
+
+  const aliasObjects = extractPartialRawExpansionObjects(aliasText)
+  assert.equal(aliasObjects.length, 2)
+  assert.equal(aliasObjects[0].path_id, 'alias-1')
+
+  const limitedObjects = extractPartialRawExpansionObjects(streamedText, { maxObjects: 1 })
+  assert.equal(limitedObjects.length, 1)
+  assert.equal(limitedObjects[0].path_id, 'path-1')
 })
 
 test('partial streaming helpers normalize streamed paths into stable product paths', () => {
@@ -1589,6 +1604,9 @@ test('partial streaming helpers normalize streamed paths into stable product pat
     title: 'Reopen the framing assumption',
     openQuestions: ['Which assumption should we test first?'],
     path_type: 'premise_shift',
+    created_at: '2026-04-10T10:00:00.000Z',
+    unfinished_score: 0.76,
+    blind_spot_hint: 'The framing may hide the operating constraint.',
     risk_hint: 'The framing may hide the operating constraint.',
     labels: ['strategy'],
     tensions: ['Scale may not be the decisive variable.']
@@ -1601,6 +1619,9 @@ test('partial streaming helpers normalize streamed paths into stable product pat
   assert.equal(partialRawPath.follow_up_question, 'Which assumption should we test first?')
   assert.deepEqual(partialRawPath.open_questions, ['Which assumption should we test first?'])
   assert.equal(partialRawPath.branch_type, 'premise_shift')
+  assert.equal(partialRawPath.created_at, '2026-04-10T10:00:00.000Z')
+  assert.equal(partialRawPath.unfinished_score, 0.76)
+  assert.equal(partialRawPath.blind_spot_hint, 'The framing may hide the operating constraint.')
 
   const normalizedPartial = normalizePartialExpansionPath(partialRawPath, {
     level: 2,
@@ -1612,9 +1633,38 @@ test('partial streaming helpers normalize streamed paths into stable product pat
   assert.equal(normalizedPartial.path_title, 'Reopen the framing assumption')
   assert.equal(normalizedPartial.next_question, 'Which assumption should we test first?')
   assert.equal(normalizedPartial.branch_type, 'premise_shift')
+  assert.equal(normalizedPartial.created_at, '2026-04-10T10:00:00.000Z')
+  assert.equal(normalizedPartial.unfinished_score, 0.76)
+  assert.equal(normalizedPartial.blind_spot_hint, 'The framing may hide the operating constraint.')
   assert.deepEqual(normalizedPartial.tags, ['strategy'])
   assert.deepEqual(normalizedPartial.tensions, ['Scale may not be the decisive variable.'])
   assert.equal(normalizedPartial.source, 'raw_hwp')
+
+  const finalNormalized = normalizeRawHwpPath({
+    path_id: 'stream-1',
+    title: 'Reopen the framing assumption',
+    openQuestions: ['Which assumption should we test first?'],
+    path_type: 'premise_shift',
+    created_at: '2026-04-10T10:00:00.000Z',
+    unfinished_score: 0.76,
+    blind_spot_hint: 'The framing may hide the operating constraint.',
+    labels: ['strategy'],
+    tensions: ['Scale may not be the decisive variable.']
+  }, {
+    level: 2,
+    timestamp: '2026-04-10T00:00:00.000Z',
+    idSeed: 'stream'
+  })
+
+  assert.equal(normalizedPartial.id, finalNormalized.id)
+  assert.equal(normalizedPartial.path_title, finalNormalized.path_title)
+  assert.equal(normalizedPartial.next_question, finalNormalized.next_question)
+  assert.equal(normalizedPartial.branch_type, finalNormalized.branch_type)
+  assert.equal(normalizedPartial.created_at, finalNormalized.created_at)
+  assert.equal(normalizedPartial.unfinished_score, finalNormalized.unfinished_score)
+  assert.equal(normalizedPartial.blind_spot_hint, finalNormalized.blind_spot_hint)
+  assert.deepEqual(normalizedPartial.tags, finalNormalized.tags)
+  assert.deepEqual(normalizedPartial.tensions, finalNormalized.tensions)
 
   const streamedText = `{
     "paths": [

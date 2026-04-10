@@ -1,5 +1,7 @@
 import { normalizeRawHwpPath } from './rawHwp.js'
 
+const PARTIAL_PATH_ARRAY_ALIASES = ['paths', 'expansion_paths']
+
 function skipWhitespaceAndCommas(text, startIndex) {
   let index = startIndex
 
@@ -17,18 +19,26 @@ function skipWhitespaceAndCommas(text, startIndex) {
 
 /**
  * Extract complete path-shaped objects from a streamed JSON text buffer.
- * This only attempts top-level extraction inside the `"paths": [...]` array.
+ * This only attempts top-level extraction inside the `paths` / `expansion_paths` array.
  *
  * @param {string} text
  * @param {object} [options]
  * @param {number} [options.alreadyExtracted=0]
+ * @param {number} [options.maxObjects=Infinity]
  * @returns {Array<object>}
  */
 export function extractPartialRawExpansionObjects(text = '', options = {}) {
   const normalizedText = String(text || '')
   const alreadyExtracted = Number(options.alreadyExtracted || 0)
+  const maxObjects = Number.isFinite(options.maxObjects)
+    ? Math.max(0, Number(options.maxObjects))
+    : Infinity
 
-  const pathsKeyIdx = normalizedText.indexOf('"paths"')
+  const pathsKeyIdx = PARTIAL_PATH_ARRAY_ALIASES
+    .map(alias => normalizedText.indexOf(`"${alias}"`))
+    .filter(index => index >= 0)
+    .sort((a, b) => a - b)[0] ?? -1
+
   if (pathsKeyIdx === -1) {
     return []
   }
@@ -42,7 +52,7 @@ export function extractPartialRawExpansionObjects(text = '', options = {}) {
   let index = bracketStart + 1
   let objectCount = 0
 
-  while (index < normalizedText.length && objectCount <= alreadyExtracted + 20) {
+  while (index < normalizedText.length && results.length < maxObjects) {
     index = skipWhitespaceAndCommas(normalizedText, index)
 
     if (index >= normalizedText.length || normalizedText[index] === ']') {
@@ -84,7 +94,7 @@ export function extractPartialRawExpansionObjects(text = '', options = {}) {
           if (depth === 0) {
             objectCount += 1
 
-            if (objectCount > alreadyExtracted) {
+            if (objectCount > alreadyExtracted && results.length < maxObjects) {
               const objectText = normalizedText.slice(objectStart, index + 1)
               try {
                 results.push(JSON.parse(objectText))
@@ -143,8 +153,13 @@ export function createPartialRawExpansionPath(path = {}, options = {}) {
   return {
     id,
     path_id: id,
+    pathId: id,
     title: String(path.title || path.path_title || path.pathTitle || '').trim(),
+    path_title: String(path.path_title || path.title || path.pathTitle || '').trim(),
+    pathTitle: String(path.pathTitle || path.path_title || path.title || '').trim(),
     summary: String(path.summary || path.path_summary || path.pathSummary || '').trim(),
+    path_summary: String(path.path_summary || path.summary || path.pathSummary || '').trim(),
+    pathSummary: String(path.pathSummary || path.path_summary || path.summary || '').trim(),
     branchType,
     branch_type: branchType,
     path_type: branchType,
@@ -162,14 +177,51 @@ export function createPartialRawExpansionPath(path = {}, options = {}) {
       nextSteps[0] ||
       ''
     ).trim(),
+    next_question: String(
+      path.next_question ||
+      path.nextQuestion ||
+      path.follow_up_question ||
+      openQuestions[0] ||
+      nextSteps[0] ||
+      ''
+    ).trim(),
+    nextQuestion: String(
+      path.nextQuestion ||
+      path.next_question ||
+      path.follow_up_question ||
+      openQuestions[0] ||
+      nextSteps[0] ||
+      ''
+    ).trim(),
     open_score: typeof path.open_score === 'number'
       ? path.open_score
       : (typeof path.unfinished_score === 'number' ? path.unfinished_score : undefined),
+    unfinished_score: typeof path.unfinished_score === 'number'
+      ? path.unfinished_score
+      : (typeof path.open_score === 'number' ? path.open_score : undefined),
+    unfinishedScore: typeof path.unfinishedScore === 'number'
+      ? path.unfinishedScore
+      : (typeof path.unfinished_score === 'number'
+          ? path.unfinished_score
+          : (typeof path.open_score === 'number' ? path.open_score : undefined)),
     risk_hint: String(path.risk_hint || path.blind_spot_hint || path.blindSpotHint || '').trim(),
+    blind_spot_hint: String(path.blind_spot_hint || path.blindSpotHint || path.risk_hint || '').trim(),
+    blindSpotHint: String(path.blindSpotHint || path.blind_spot_hint || path.risk_hint || '').trim(),
     labels: Array.isArray(path.labels) ? path.labels : (Array.isArray(path.tags) ? path.tags : []),
+    tags: Array.isArray(path.tags) ? path.tags : (Array.isArray(path.labels) ? path.labels : []),
     tensions: Array.isArray(path.tensions)
       ? path.tensions
       : (Array.isArray(path.key_tensions) ? path.key_tensions : []),
+    key_tensions: Array.isArray(path.key_tensions)
+      ? path.key_tensions
+      : (Array.isArray(path.tensions) ? path.tensions : []),
+    keyTensions: Array.isArray(path.keyTensions)
+      ? path.keyTensions
+      : (Array.isArray(path.key_tensions)
+          ? path.key_tensions
+          : (Array.isArray(path.tensions) ? path.tensions : [])),
+    created_at: String(path.created_at || path.createdAt || '').trim(),
+    createdAt: String(path.createdAt || path.created_at || '').trim(),
     level
   }
 }
