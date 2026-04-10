@@ -18,8 +18,14 @@ import {
   buildStructuredOverview,
   buildRawExpansionAuditReport,
   buildRawHwpAuditReport,
+  applyPartialPathsToTreeState,
+  createContentChunkEvent,
   createSessionId,
+  createFinalPayloadEvent,
+  createPartialPathEvent,
   createPartialRawExpansionPath,
+  createThinkingChunkEvent,
+  dispatchRawExpansionStreamEvent,
   extractRawHwpAuditPayload,
   extractPartialExpansionPaths,
   extractPartialRawExpansionObjects,
@@ -1692,6 +1698,113 @@ test('partial streaming helpers normalize streamed paths into stable product pat
   assert.equal(normalizedFromText[0].next_question, 'Which assumption should we test first?')
   assert.equal(normalizedFromText[1].id, 'stream-2-2')
   assert.equal(normalizedFromText[1].next_question, 'Which dependency sets the real limit?')
+})
+
+test('stream event helpers build and dispatch package-owned streaming events', () => {
+  const partialPath = normalizePartialExpansionPath({
+    path_id: 'stream-event-1',
+    title: 'Follow the hidden dependency',
+    nextSteps: ['Which dependency controls the real pace?']
+  }, {
+    level: 2,
+    timestamp: '2026-04-10T12:00:00.000Z',
+    idSeed: 'stream-event'
+  })
+
+  const contentEvent = createContentChunkEvent('abc')
+  const partialEvent = createPartialPathEvent(partialPath)
+  const thinkingEvent = createThinkingChunkEvent('reasoning')
+  const finalEvent = createFinalPayloadEvent({
+    question: 'Should we expand internationally this year?',
+    paths: [{ path_id: 'stream-event-1', title: 'Follow the hidden dependency' }]
+  })
+
+  assert.deepEqual(contentEvent, { kind: 'content_chunk', chunk: 'abc' })
+  assert.equal(partialEvent.kind, 'partial_path')
+  assert.equal(partialEvent.path.id, 'stream-event-1')
+  assert.deepEqual(thinkingEvent, { kind: 'thinking_chunk', chunk: 'reasoning' })
+  assert.equal(finalEvent.kind, 'final_payload')
+
+  const calls = []
+  const callbacks = {
+    onContentChunk: (chunk) => calls.push(['content', chunk]),
+    onPartialPath: (path) => calls.push(['partial', path.id]),
+    onThinkingChunk: (chunk) => calls.push(['thinking', chunk]),
+    onFinalPayload: (payload) => calls.push(['final', payload.question]),
+    onEvent: (event) => calls.push(['event', event.kind])
+  }
+
+  dispatchRawExpansionStreamEvent(callbacks, contentEvent)
+  dispatchRawExpansionStreamEvent(callbacks, partialEvent)
+  dispatchRawExpansionStreamEvent(callbacks, thinkingEvent)
+  dispatchRawExpansionStreamEvent(callbacks, finalEvent)
+
+  assert.deepEqual(calls, [
+    ['event', 'content_chunk'],
+    ['content', 'abc'],
+    ['event', 'partial_path'],
+    ['partial', 'stream-event-1'],
+    ['event', 'thinking_chunk'],
+    ['thinking', 'reasoning'],
+    ['event', 'final_payload'],
+    ['final', 'Should we expand internationally this year?']
+  ])
+})
+
+test('partial tree helper applies streamed paths into root and child collections', () => {
+  const rootPartial = normalizePartialExpansionPath({
+    path_id: 'root-stream-1',
+    title: 'Reframe the market-entry assumption',
+    nextSteps: ['Which constraint matters more than market size?']
+  }, {
+    level: 1,
+    timestamp: '2026-04-10T12:30:00.000Z',
+    idSeed: 'root'
+  })
+
+  const rootApplied = applyPartialPathsToTreeState(undefined, [rootPartial], {
+    rootParentValue: 'root'
+  })
+
+  assert.equal(rootApplied.rootPaths.length, 1)
+  assert.equal(rootApplied.rootPaths[0].id, 'root-stream-1')
+  assert.deepEqual(rootApplied.insertedPathIds, ['root-stream-1'])
+  assert.deepEqual(rootApplied.updatedPathIds, [])
+  assert.equal(rootApplied.parentPathMap['root-stream-1'], 'root')
+
+  const childPartial = normalizePartialExpansionPath({
+    path_id: 'child-stream-1',
+    title: 'Map the hidden dependency',
+    nextSteps: ['Which dependency sets the real limit?']
+  }, {
+    level: 2,
+    timestamp: '2026-04-10T12:31:00.000Z',
+    idSeed: 'child'
+  })
+
+  const childApplied = applyPartialPathsToTreeState(rootApplied, [childPartial], {
+    parentId: 'root-stream-1'
+  })
+
+  assert.equal(childApplied.rootPaths.length, 1)
+  assert.equal(childApplied.childPathsMap['root-stream-1'].length, 1)
+  assert.equal(childApplied.childPathsMap['root-stream-1'][0].id, 'child-stream-1')
+  assert.deepEqual(childApplied.insertedPathIds, ['child-stream-1'])
+  assert.equal(childApplied.parentPathMap['child-stream-1'], 'root-stream-1')
+
+  const updatedChild = {
+    ...childPartial,
+    path_summary: 'Now with a stronger summary.'
+  }
+
+  const updatedApplied = applyPartialPathsToTreeState(childApplied, [updatedChild], {
+    parentId: 'root-stream-1'
+  })
+
+  assert.equal(updatedApplied.childPathsMap['root-stream-1'].length, 1)
+  assert.equal(updatedApplied.childPathsMap['root-stream-1'][0].path_summary, 'Now with a stronger summary.')
+  assert.deepEqual(updatedApplied.insertedPathIds, [])
+  assert.deepEqual(updatedApplied.updatedPathIds, ['child-stream-1'])
 })
 
 // ============================================================================

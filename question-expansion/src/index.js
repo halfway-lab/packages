@@ -33,6 +33,15 @@ export {
   extractPartialExpansionPaths
 } from './contracts/partialExpansion.js'
 
+// Streaming Event Helpers
+export {
+  createContentChunkEvent,
+  createPartialPathEvent,
+  createThinkingChunkEvent,
+  createFinalPayloadEvent,
+  dispatchRawExpansionStreamEvent
+} from './contracts/streamEvents.js'
+
 // Raw Expansion Contract
 export {
   buildRawHwpExpandRequest,
@@ -79,7 +88,12 @@ export { buildSessionRecord } from './session/sessionRecord.js'
 export { buildHistoryCardViewModel, formatSessionTimestamp } from './session/historyViewModel.js'
 
 // Runtime Helpers
-export { createSessionId, buildRootParentMap, buildChildParentMap } from './runtime/treeState.js'
+export {
+  createSessionId,
+  buildRootParentMap,
+  buildChildParentMap
+} from './runtime/treeState.js'
+export { applyPartialPathsToTreeState } from './runtime/partialTreeState.js'
 
 // Status
 export { buildStatusMessage } from './runtime/status.js'

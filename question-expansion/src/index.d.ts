@@ -654,6 +654,19 @@ export interface RawExpansionStreamCallbacks {
   onEvent?: (event: RawExpansionStreamEvent) => void
 }
 
+export function createContentChunkEvent(chunk?: string): StreamingContentChunkEvent
+export function createPartialPathEvent(
+  path: NormalizedPath & { tensions: string[]; source: string }
+): StreamingPartialPathEvent
+export function createThinkingChunkEvent(chunk?: string): StreamingThinkingChunkEvent
+export function createFinalPayloadEvent(
+  payload: RawExpansionPayload | RawExpansionPayload[]
+): StreamingFinalPayloadEvent
+export function dispatchRawExpansionStreamEvent(
+  callbacks: RawExpansionStreamCallbacks | undefined,
+  event: RawExpansionStreamEvent
+): void
+
 // ==================== Audit Types ====================
 
 /**
@@ -895,6 +908,34 @@ export interface SessionRecord {
   rootPathCount: number
   updatedAt: string
   sessionSummary: SessionSummary
+}
+
+/**
+ * Minimal tree state owned by the package runtime helpers.
+ */
+export interface PartialTreeState {
+  rootPaths?: NormalizedPath[]
+  childPathsMap?: ChildPathsMap
+  parentPathMap?: ParentMap
+}
+
+/**
+ * Options for applying streamed partial paths into tree state.
+ */
+export interface PartialTreeApplyOptions {
+  parentId?: string | null
+  rootParentValue?: string | null
+}
+
+/**
+ * Result of applying streamed partial paths into tree state.
+ */
+export interface PartialTreeApplyResult {
+  rootPaths: NormalizedPath[]
+  childPathsMap: ChildPathsMap
+  parentPathMap: ParentMap
+  insertedPathIds: string[]
+  updatedPathIds: string[]
 }
 
 /**
@@ -1315,6 +1356,11 @@ export function formatSessionTimestamp(value: string | number | Date | null | un
 export function createSessionId(options?: SessionIdOptions): string
 export function buildRootParentMap(paths: PathReference[]): ParentMap
 export function buildChildParentMap(parentId: PathIdentifier, children: PathReference[]): ParentMap
+export function applyPartialPathsToTreeState(
+  state: PartialTreeState | undefined,
+  partialPaths: NormalizedPath[],
+  options?: PartialTreeApplyOptions
+): PartialTreeApplyResult
 
 // Status
 export function buildStatusMessage(info?: StatusInfo): string
