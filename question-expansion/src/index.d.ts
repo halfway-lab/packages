@@ -64,6 +64,16 @@ export interface PathReference {
  */
 export type OpenPathMap = Record<string, boolean>
 
+/**
+ * Reusable raw text-ish entry shape used by tension-like fields.
+ */
+export type DescribedTextEntry = { description?: string } | string
+
+/**
+ * Branch type values may be registry-backed or forward-compatible custom strings.
+ */
+export type BranchTypeValue = BranchType | string
+
 // ==================== Path Types ====================
 
 /**
@@ -79,7 +89,7 @@ export interface NormalizedPath {
   /** Suggested next question for this path */
   next_question: string
   /** Categorization type of the path */
-  branch_type: BranchType | string
+  branch_type: BranchTypeValue
   /** Score indicating how unfinished this path is (0-1) */
   unfinished_score: number
   /** Hint about potential blind spots */
@@ -131,9 +141,9 @@ export interface RawHwpPath {
   labels?: string[]
   parentId?: string | null
   parent_id?: string | null
-  tensions?: Array<{ description?: string } | string>
-  key_tensions?: Array<{ description?: string } | string>
-  keyTensions?: Array<{ description?: string } | string>
+  tensions?: DescribedTextEntry[]
+  key_tensions?: DescribedTextEntry[]
+  keyTensions?: DescribedTextEntry[]
 }
 
 /**
@@ -173,8 +183,8 @@ export interface RawHwpExpansion {
   coreQuestion?: string
   paths?: RawHwpPath[]
   expansion_paths?: RawHwpPath[]
-  key_tensions?: Array<{ description?: string } | string>
-  keyTensions?: Array<{ description?: string } | string>
+  key_tensions?: DescribedTextEntry[]
+  keyTensions?: DescribedTextEntry[]
   next_questions?: string[]
   nextQuestions?: string[]
   protocol_version?: string
@@ -539,7 +549,7 @@ export interface HeuristicRule {
  */
 export interface InferredBranchType {
   /** Inferred branch type */
-  branchType: BranchType | string
+  branchType: BranchTypeValue
   /** Rule ID that matched */
   ruleId: string
   /** Keywords that were matched */
@@ -583,6 +593,11 @@ export interface AuditPayload {
     derived_fields: NonNullable<RawExpansionMeta['derived_fields']>
   }
 }
+
+/**
+ * Path map of pause cards keyed by path id.
+ */
+export type PauseCardMap = Record<string, PauseCard>
 
 /**
  * Path preview in audit report
@@ -672,7 +687,7 @@ export interface ExpansionViewModelOptions {
   focusedPathId?: string | null
   focusModeEnabled?: boolean
   parentPathMap?: ParentMap
-  pauseCards?: Record<string, PauseCard>
+  pauseCards?: PauseCardMap
 }
 
 // ==================== Exploration Context Types ====================
@@ -786,7 +801,7 @@ export interface SessionRecord {
   rootPaths: NormalizedPath[]
   childPathsMap: ChildPathsMap
   openPathIds: OpenPathMap
-  pauseCards: Record<string, PauseCard>
+  pauseCards: PauseCardMap
   parentPathMap: ParentMap
   focusedPathId: string | null
   rootPathCount: number
@@ -1128,7 +1143,7 @@ export function buildPauseSummary(
     focusedPathId?: string | null
     parentPathMap?: ParentMap
     openPathIds?: OpenPathMap
-    pauseCards?: Record<string, PauseCard>
+    pauseCards?: PauseCardMap
     question?: string
   }
 ): PauseCard
@@ -1136,7 +1151,7 @@ export function buildPauseSummary(
 export function buildPathMarkdown(options: {
   path: NormalizedPath
   level?: number
-  pauseCards?: Record<string, PauseCard>
+  pauseCards?: PauseCardMap
   childPathsMap?: ChildPathsMap
   openPathIds?: OpenPathMap
 }): string
@@ -1145,7 +1160,7 @@ export function buildSessionSummary(options: {
   question?: string
   rootPaths?: NormalizedPath[]
   childPathsMap?: ChildPathsMap
-  pauseCards?: Record<string, PauseCard>
+  pauseCards?: PauseCardMap
   focusedPath?: NormalizedPath | null
   focusedChildren?: NormalizedPath[]
 }): SessionSummary
@@ -1157,7 +1172,7 @@ export function buildExplorationContext(
     focusedPathId?: string | null
     parentPathMap?: ParentMap
     openPathIds?: OpenPathMap
-    pauseCards?: Record<string, PauseCard>
+    pauseCards?: PauseCardMap
     question?: string
   }
 ): ExplorationContext
@@ -1170,7 +1185,7 @@ export function buildSessionRecord(
     rootPaths?: NormalizedPath[]
     childPathsMap?: ChildPathsMap
     openPathIds?: OpenPathMap
-    pauseCards?: Record<string, PauseCard>
+    pauseCards?: PauseCardMap
     parentPathMap?: ParentMap
     focusedPathId?: string | null
   },
@@ -1178,8 +1193,10 @@ export function buildSessionRecord(
 ): SessionRecord
 
 // History View Model
+export type HistorySessionLike = Partial<SessionRecord>
+
 export function buildHistoryCardViewModel(
-  session: Partial<SessionRecord>,
+  session: HistorySessionLike,
   options?: HistoryCardOptions
 ): HistoryCardViewModel
 

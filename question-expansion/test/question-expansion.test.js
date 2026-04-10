@@ -1507,6 +1507,7 @@ test('neutral raw payload aliases are recognized without unknown-field drift', (
 })
 
 test('neutral raw expansion APIs handle generic, HWP-style, and malformed payload fixtures', async () => {
+  const timestamp = '2026-04-08T12:39:26.971Z'
   const genericFixture = JSON.parse(
     await fs.readFile(new URL('../docs/examples/raw-expansion-generic-sample.json', import.meta.url), 'utf8')
   )
@@ -1517,7 +1518,7 @@ test('neutral raw expansion APIs handle generic, HWP-style, and malformed payloa
     await fs.readFile(new URL('../docs/examples/raw-hwp-invalid-sample.json', import.meta.url), 'utf8')
   )
 
-  const genericNormalized = normalizeRawExpansion(genericFixture)
+  const genericNormalized = normalizeRawExpansion(genericFixture, { timestamp })
   assert.equal(genericNormalized.question, 'Should we expand internationally this year?')
   assert.equal(genericNormalized.coreQuestion, 'Which assumption is narrowing the decision too early?')
   assert.equal(genericNormalized.expansionPaths.length, 1)
@@ -1527,10 +1528,23 @@ test('neutral raw expansion APIs handle generic, HWP-style, and malformed payloa
 
   const genericValidation = validateRawExpansion(genericFixture)
   assert.equal(genericValidation.valid, true)
-  assert.deepEqual(genericValidation.normalized, validateRawHwpExpansion(genericFixture).normalized)
+  const genericLegacyValidation = validateRawHwpExpansion(genericFixture)
+  assert.equal(genericLegacyValidation.valid, true)
+  assert.equal(genericValidation.normalized?.question, genericLegacyValidation.normalized?.question)
+  assert.equal(genericValidation.normalized?.coreQuestion, genericLegacyValidation.normalized?.coreQuestion)
+  assert.deepEqual(genericValidation.normalized?.keyTensions, genericLegacyValidation.normalized?.keyTensions)
+  assert.deepEqual(genericValidation.normalized?.nextQuestions, genericLegacyValidation.normalized?.nextQuestions)
+  assert.equal(
+    genericValidation.normalized?.expansionPaths[0]?.branch_type,
+    genericLegacyValidation.normalized?.expansionPaths[0]?.branch_type
+  )
+  assert.deepEqual(
+    genericValidation.normalized?.meta,
+    genericLegacyValidation.normalized?.meta
+  )
 
-  const hwpNormalized = normalizeRawExpansion(hwpFixture)
-  assert.deepEqual(hwpNormalized, normalizeRawHwpExpansion(hwpFixture))
+  const hwpNormalized = normalizeRawExpansion(hwpFixture, { timestamp })
+  assert.deepEqual(hwpNormalized, normalizeRawHwpExpansion(hwpFixture, { timestamp }))
 
   const malformedValidation = validateRawExpansion(malformedFixture)
   assert.equal(malformedValidation.valid, false)
