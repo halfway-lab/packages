@@ -66,6 +66,11 @@ import {
   buildDescendantScope
 } from '../src/utils/treeTraversal.js'
 
+// Import modules for new tests
+import { createStreamOrchestrator } from '../src/runtime/streamOrchestrator.js'
+import { mergeStreamAndFinalPaths } from '../src/contracts/partialExpansion.js'
+import { buildPathsFirstJsonSchema, getExpansionPromptFragments } from '../src/contracts/promptFragments.js'
+
 const execFileAsync = promisify(execFile)
 
 test('normalizes adapter responses into stable path objects', () => {
@@ -2130,4 +2135,225 @@ test('exploration context and enhanced pause summary', () => {
   assert.ok(Array.isArray(enhancedPause.explorationContext.keyTensions))
   assert.ok(Array.isArray(enhancedPause.explorationContext.nextQuestions))
   assert.ok(Array.isArray(enhancedPause.explorationContext.pauseHistory))
+})
+
+// ==================== Field Consistency Tests ====================
+
+test('field consistency: normalizePartialExpansionPath and normalizeRawHwpPath produce identical key sets', () => {
+  const rawInput = {
+    id: 'test-1',
+    path_title: 'Test Path',
+    path_summary: 'A test summary',
+    next_question: 'What next?',
+    branch_type: 'premise_shift',
+    unfinished_score: 0.6,
+    blind_spot_hint: 'Watch out for X',
+    level: 2,
+    tags: ['tag1'],
+    tensions: [{ text: 'tension1' }]
+  }
+
+  // 通道 1：流式路径
+  const streamResult = normalizePartialExpansionPath(rawInput, { level: 2 })
+  // 通道 2：最终路径
+  const finalResult = normalizeRawHwpPath(rawInput, { level: 2 })
+
+  // 断言 key set 完全相同
+  const streamKeys = Object.keys(streamResult).sort()
+  const finalKeys = Object.keys(finalResult).sort()
+  assert.deepStrictEqual(streamKeys, finalKeys,
+    `Key sets differ: stream=[${streamKeys}] vs final=[${finalKeys}]`)
+
+  // 断言同名字段的值类型相同
+  for (const key of streamKeys) {
+    const streamType = Array.isArray(streamResult[key]) ? 'array' : typeof streamResult[key]
+    const finalType = Array.isArray(finalResult[key]) ? 'array' : typeof finalResult[key]
+    assert.strictEqual(streamType, finalType,
+      `Type mismatch for '${key}': stream=${streamType} vs final=${finalType}`)
+  }
+})
+
+test('field consistency: both channels produce consistent values for the same input', () => {
+  const rawInput = {
+    id: 'consistency-test',
+    title: 'Using title alias',  // 测试别名处理一致性
+    summary: 'Using summary alias',
+    nextQuestion: 'camelCase alias',
+    branchType: 'hidden_variable',
+    unfinished_score: 0.8,
+    blindSpotHint: 'camelCase alias',
+    level: 3,
+    labels: ['label1', 'label2']
+  }
+
+  const streamResult = normalizePartialExpansionPath(rawInput, { level: 3 })
+  const finalResult = normalizeRawHwpPath(rawInput, { level: 3 })
+
+  // 核心字段值应该一致
+  assert.strictEqual(streamResult.id, finalResult.id)
+  assert.strictEqual(streamResult.path_title, finalResult.path_title)
+  assert.strictEqual(streamResult.path_summary, finalResult.path_summary)
+  assert.strictEqual(streamResult.branch_type, finalResult.branch_type)
+  assert.strictEqual(streamResult.unfinished_score, finalResult.unfinished_score)
+  assert.strictEqual(streamResult.level, finalResult.level)
+  assert.strictEqual(streamResult.source, finalResult.source)
+})
+
+// ==================== Stream Orchestrator Tests ====================
+
+test('stream orchestrator batches events and flushes on final_payload', async () => {
+  const dispatched = []
+  const orch = createStreamOrchestrator({
+    onContentChunk: (chunk) => dispatched.push({ kind: 'content_chunk', chunk }),
+    onPartialPath: (path) => dispatched.push({ kind: 'partial_path', id: path.id }),
+    onFinalPayload: (payload) => dispatched.push({ kind: 'final_payload' })
+  }, { interval: 50 })
+
+  orch.push(createContentChunkEvent('hello'))
+  orch.push(createContentChunkEvent(' world'))
+
+  // 还没到间隔时间，不应该有分发
+  const stats1 = orch.getStats()
+  assert.strictEqual(stats1.pushed, 2)
+
+  // push final_payload 会立即 flush 所有积压事件
+  orch.push(createFinalPayloadEvent({ paths: [] }))
+
+  assert.strictEqual(dispatched.length, 3) // 2 content_chunk + 1 final_payload
+  const stats2 = orch.getStats()
+  assert.strictEqual(stats2.finished, true)
+  assert.strictEqual(stats2.dispatched, 3)
+})
+
+test('stream orchestrator cancel clears queue', async () => {
+  let cancelCalled = false
+  const orch = createStreamOrchestrator({}, {
+    interval: 1000, // 长间隔，确保不会自动 drain
+    onCancel: () => { cancelCalled = true }
+  })
+
+  orch.push(createContentChunkEvent('a'))
+  orch.push(createContentChunkEvent('b'))
+  assert.strictEqual(orch.getStats().pending, 2)
+
+  orch.cancel()
+  assert.strictEqual(cancelCalled, true)
+  assert.strictEqual(orch.getStats().cancelled, true)
+  assert.strictEqual(orch.getStats().pending, 0)
+  assert.strictEqual(orch.getStats().dropped, 2)
+
+  // 取消后 push 无效
+  orch.push(createContentChunkEvent('c'))
+  assert.strictEqual(orch.getStats().pushed, 2) // 不增加
+})
+
+test('stream orchestrator race guard deduplicates partial_path events', async () => {
+  const dispatched = []
+  const orch = createStreamOrchestrator({
+    onPartialPath: (path) => dispatched.push(path.id)
+  }, { interval: 5000, raceGuard: true }) // 长间隔
+
+  // 同一 pathId 推入多次
+  orch.push(createPartialPathEvent({ id: 'p1', path_title: 'v1', tensions: [], source: 'raw_hwp' }))
+  orch.push(createPartialPathEvent({ id: 'p1', path_title: 'v2', tensions: [], source: 'raw_hwp' }))
+  orch.push(createPartialPathEvent({ id: 'p2', path_title: 'other', tensions: [], source: 'raw_hwp' }))
+
+  // flush 手动触发
+  orch.flush()
+
+  // p1 应该只有最新版本（v2），p2 正常
+  assert.strictEqual(dispatched.length, 2) // p1(v2) + p2
+  assert.ok(orch.getStats().dropped >= 1)
+})
+
+// ==================== Merge Stream and Final Paths Tests ====================
+
+test('mergeStreamAndFinalPaths final_order strategy reorders to match final', () => {
+  const stream = [
+    { id: 'b', path_title: 'B-stream' },
+    { id: 'a', path_title: 'A-stream' }
+  ]
+  const final_ = [
+    { id: 'a', path_title: 'A-final', path_summary: 'full A' },
+    { id: 'b', path_title: 'B-final', path_summary: 'full B' }
+  ]
+  const merged = mergeStreamAndFinalPaths(stream, final_, { strategy: 'final_order' })
+  assert.strictEqual(merged.length, 2)
+  assert.strictEqual(merged[0].id, 'a') // final 顺序
+  assert.strictEqual(merged[1].id, 'b')
+  assert.strictEqual(merged[0].path_summary, 'full A') // final 数据
+})
+
+test('mergeStreamAndFinalPaths stream_order strategy preserves stream order', () => {
+  const stream = [
+    { id: 'b', path_title: 'B-stream' },
+    { id: 'a', path_title: 'A-stream' }
+  ]
+  const final_ = [
+    { id: 'a', path_title: 'A-final', path_summary: 'full A' },
+    { id: 'b', path_title: 'B-final', path_summary: 'full B' }
+  ]
+  const merged = mergeStreamAndFinalPaths(stream, final_, { strategy: 'stream_order' })
+  assert.strictEqual(merged[0].id, 'b') // stream 顺序
+  assert.strictEqual(merged[1].id, 'a')
+  assert.strictEqual(merged[0].path_summary, 'full B') // 但用 final 数据更新
+})
+
+test('mergeStreamAndFinalPaths appends paths missing from one side', () => {
+  const stream = [{ id: 'a', path_title: 'A' }]
+  const final_ = [{ id: 'a', path_title: 'A-final' }, { id: 'c', path_title: 'C-new' }]
+
+  const merged = mergeStreamAndFinalPaths(stream, final_, { strategy: 'final_order' })
+  assert.strictEqual(merged.length, 2)
+  assert.strictEqual(merged[1].id, 'c') // 来自 final 的新路径
+})
+
+test('mergeStreamAndFinalPaths smart strategy uses final_order when IDs match', () => {
+  const stream = [{ id: 'b' }, { id: 'a' }]
+  const final_ = [{ id: 'a' }, { id: 'b' }]
+  const merged = mergeStreamAndFinalPaths(stream, final_, { strategy: 'smart' })
+  assert.strictEqual(merged[0].id, 'a') // IDs match -> final_order
+})
+
+test('mergeStreamAndFinalPaths smart strategy uses stream_order when IDs differ', () => {
+  const stream = [{ id: 'a' }, { id: 'b' }]
+  const final_ = [{ id: 'a' }, { id: 'c' }] // 不同 ID 集合
+  const merged = mergeStreamAndFinalPaths(stream, final_, { strategy: 'smart' })
+  assert.strictEqual(merged[0].id, 'a') // stream_order
+  assert.strictEqual(merged[1].id, 'b') // stream 的 b 保留
+  assert.strictEqual(merged[2].id, 'c') // final 的 c 追加
+})
+
+test('mergeStreamAndFinalPaths handles empty inputs', () => {
+  assert.deepStrictEqual(mergeStreamAndFinalPaths([], []), [])
+  const paths = [{ id: 'a' }]
+  assert.strictEqual(mergeStreamAndFinalPaths(paths, []).length, 1)
+  assert.strictEqual(mergeStreamAndFinalPaths([], paths).length, 1)
+})
+
+// ==================== Prompt Fragments Tests ====================
+
+test('buildPathsFirstJsonSchema returns valid schema with paths first', () => {
+  const schema = buildPathsFirstJsonSchema()
+  assert.strictEqual(schema.type, 'object')
+  assert.ok(schema.properties.paths)
+  assert.ok(schema.required.includes('paths'))
+  assert.strictEqual(schema.propertyOrder[0], 'paths')
+  assert.strictEqual(schema.properties.paths.type, 'array')
+})
+
+test('getExpansionPromptFragments returns all required fragment keys', () => {
+  const fragments = getExpansionPromptFragments()
+  assert.ok(typeof fragments.pathsFirst === 'string')
+  assert.ok(typeof fragments.jsonStructure === 'string')
+  assert.ok(typeof fragments.fieldNames === 'string')
+  assert.ok(typeof fragments.responseFormat === 'string')
+
+  // pathsFirst 应该包含 paths 优先的说明
+  assert.ok(fragments.pathsFirst.includes('paths'))
+  assert.ok(fragments.pathsFirst.toLowerCase().includes('first'))
+
+  // fieldNames 应该包含核心字段名
+  assert.ok(fragments.fieldNames.includes('path_title'))
+  assert.ok(fragments.fieldNames.includes('next_question'))
 })

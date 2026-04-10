@@ -667,6 +667,71 @@ export function dispatchRawExpansionStreamEvent(
   event: RawExpansionStreamEvent
 ): void
 
+// ==================== Stream Orchestrator Types ====================
+
+export interface StreamOrchestratorOptions {
+  interval?: number
+  batchSize?: number
+  raceGuard?: boolean
+  onCancel?: () => void
+  onError?: (error: Error, event: RawExpansionStreamEvent) => void
+}
+
+export interface StreamOrchestratorStats {
+  pushed: number
+  dispatched: number
+  dropped: number
+  batches: number
+  pending: number
+  cancelled: boolean
+  finished: boolean
+}
+
+export interface StreamOrchestrator {
+  push(event: RawExpansionStreamEvent): void
+  flush(): void
+  cancel(): void
+  getStats(): StreamOrchestratorStats
+}
+
+export function createStreamOrchestrator(
+  callbacks?: RawExpansionStreamCallbacks,
+  options?: StreamOrchestratorOptions
+): StreamOrchestrator
+
+// ==================== Path Merge Types ====================
+
+export type MergeStrategy = 'final_order' | 'stream_order' | 'smart'
+
+export interface MergePathsOptions {
+  strategy?: MergeStrategy
+}
+
+export function mergeStreamAndFinalPaths(
+  streamPaths?: NormalizedPath[],
+  finalPaths?: NormalizedPath[],
+  options?: MergePathsOptions
+): NormalizedPath[]
+
+// ==================== Prompt Fragments Types ====================
+
+export interface PathsFirstJsonSchema {
+  type: 'object'
+  properties: Record<string, any>
+  required: string[]
+  propertyOrder: string[]
+}
+
+export interface PromptFragments {
+  pathsFirst: string
+  jsonStructure: string
+  fieldNames: string
+  responseFormat: string
+}
+
+export function buildPathsFirstJsonSchema(): PathsFirstJsonSchema
+export function getExpansionPromptFragments(): PromptFragments
+
 // ==================== Audit Types ====================
 
 /**

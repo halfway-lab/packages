@@ -3,6 +3,7 @@ import { buildStructuredOverview } from '../overview/structuredOverview.js'
 import { toArray, pickFieldWithSchema } from '../utils/fieldHelpers.js'
 import { RAW_HWP_DEFAULTS } from '../constants.js'
 import { resolveProtocolSchema } from './protocolRegistry.js'
+import { mergeStreamAndFinalPaths } from './partialExpansion.js'
 
 /**
  * Build a raw HWP expand request payload.
@@ -193,6 +194,15 @@ export function normalizeRawHwpExpansion(rawHwp = {}, options = {}) {
       requestedVersion: schema._requestedVersion,
       resolvedVersion: schema.version
     }
+  }
+
+  // 如果提供了 streamPaths，合并流式路径和最终路径以解决卡片跳位问题
+  if (Array.isArray(options.streamPaths) && options.streamPaths.length > 0) {
+    expansionPaths = mergeStreamAndFinalPaths(
+      options.streamPaths,
+      expansionPaths,
+      { strategy: options.mergeStrategy || 'final_order' }
+    )
   }
 
   return {

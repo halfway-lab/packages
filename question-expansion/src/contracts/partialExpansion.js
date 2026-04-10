@@ -254,3 +254,79 @@ export function extractPartialExpansionPaths(text = '', options = {}) {
     index: Number(options.alreadyExtracted || 0) + index
   }))
 }
+
+/**
+ * 合并流式路径和最终路径，解决卡片跳位问题。
+ *
+ * @param {NormalizedPath[]} streamPaths - 流式渐进追加的路径（按到达顺序）
+ * @param {NormalizedPath[]} finalPaths - 最终规范化的路径（完整数据）
+ * @param {Object} [options={}]
+ * @param {'final_order'|'stream_order'|'smart'} [options.strategy='final_order']
+ * @returns {NormalizedPath[]}
+ */
+export function mergeStreamAndFinalPaths(streamPaths = [], finalPaths = [], options = {}) {
+  const { strategy = 'final_order' } = options
+
+  // 安全处理
+  const safeStream = Array.isArray(streamPaths) ? streamPaths.filter(Boolean) : []
+  const safeFinal = Array.isArray(finalPaths) ? finalPaths.filter(Boolean) : []
+
+  if (safeFinal.length === 0) return [...safeStream]
+  if (safeStream.length === 0) return [...safeFinal]
+
+  // 构建 ID -> path 索引
+  const streamById = new Map(safeStream.map(p => [String(p.id || ''), p]))
+  const finalById = new Map(safeFinal.map(p => [String(p.id || ''), p]))
+
+  if (strategy === 'final_order') {
+    return applyFinalOrder(safeStream, safeFinal, streamById, finalById)
+  }
+  if (strategy === 'stream_order') {
+    return applyStreamOrder(safeStream, safeFinal, streamById, finalById)
+  }
+  // 'smart' 策略
+  return applySmartOrder(safeStream, safeFinal, streamById, finalById)
+}
+
+function applyFinalOrder(streamPaths, finalPaths, streamById, finalById) {
+  // 以 finalPaths 顺序为准
+  // 对于每个 finalPath：如果 streamPaths 中有同 ID，合并（final 数据优先，保留 stream 的渲染状态）
+  const merged = finalPaths.map(fp => {
+    const sp = streamById.get(String(fp.id || ''))
+    return sp ? { ...sp, ...fp } : fp  // final 数据覆盖 stream
+  })
+  // 追加 streamPaths 中有但 finalPaths 中没有的路径
+  for (const sp of streamPaths) {
+    if (!finalById.has(String(sp.id || ''))) {
+      merged.push(sp)
+    }
+  }
+  return merged
+}
+
+function applyStreamOrder(streamPaths, finalPaths, streamById, finalById) {
+  // 以 streamPaths 顺序为准，用 finalPaths 更新字段
+  const merged = streamPaths.map(sp => {
+    const fp = finalById.get(String(sp.id || ''))
+    return fp ? { ...sp, ...fp } : sp  // final 数据覆盖
+  })
+  // 追加 finalPaths 中有但 streamPaths 中没有的路径
+  for (const fp of finalPaths) {
+    if (!streamById.has(String(fp.id || ''))) {
+      merged.push(fp)
+    }
+  }
+  return merged
+}
+
+function applySmartOrder(streamPaths, finalPaths, streamById, finalById) {
+  // ID 集合完全一致时用 final_order，否则用 stream_order
+  const streamIds = new Set(streamPaths.map(p => String(p.id || '')))
+  const finalIds = new Set(finalPaths.map(p => String(p.id || '')))
+
+  if (streamIds.size === finalIds.size &&
+      [...streamIds].every(id => finalIds.has(id))) {
+    return applyFinalOrder(streamPaths, finalPaths, streamById, finalById)
+  }
+  return applyStreamOrder(streamPaths, finalPaths, streamById, finalById)
+}

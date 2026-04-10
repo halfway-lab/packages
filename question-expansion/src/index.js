@@ -30,7 +30,8 @@ export {
   extractPartialRawExpansionObjects,
   createPartialRawExpansionPath,
   normalizePartialExpansionPath,
-  extractPartialExpansionPaths
+  extractPartialExpansionPaths,
+  mergeStreamAndFinalPaths
 } from './contracts/partialExpansion.js'
 
 // Streaming Event Helpers
@@ -41,6 +42,12 @@ export {
   createFinalPayloadEvent,
   dispatchRawExpansionStreamEvent
 } from './contracts/streamEvents.js'
+
+// Stream Orchestrator
+export { createStreamOrchestrator } from './runtime/streamOrchestrator.js'
+
+// Prompt Fragments
+export { buildPathsFirstJsonSchema, getExpansionPromptFragments } from './contracts/promptFragments.js'
 
 // Raw Expansion Contract
 export {

@@ -1,7 +1,7 @@
 {
   "name": "@halfway-lab/question-expansion",
   "private": false,
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Normalize, validate, and audit compatible raw exploration payloads into stable Question Expander path data.",
   "keywords": [
     "hwp",
