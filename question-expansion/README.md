@@ -193,12 +193,87 @@ if (result.valid) {
 }
 ```
 
+Build a typed raw expansion request in TypeScript:
+
+```ts
+import {
+  buildRawHwpExpandRequest,
+  type RawExpansionPayload,
+  type RawExpansionRequestInput
+} from '@halfway-lab/question-expansion'
+
+const request: RawExpansionRequestInput = {
+  question: 'Should we expand internationally this year?',
+  depth: 1,
+  options: {
+    max_paths: 3
+  }
+}
+
+const payload: RawExpansionPayload = {
+  question: 'Should we expand internationally this year?',
+  sessionId: 'session-42',
+  paths: [
+    {
+      pathId: 'path-1',
+      title: 'Reframe the market-entry assumption',
+      openQuestions: ['Which constraint matters more than market size?'],
+      parentId: null
+    }
+  ]
+}
+
+const rawRequest = buildRawHwpExpandRequest(request)
+console.log(rawRequest)
+console.log(payload.paths?.[0]?.openQuestions)
+```
+
 Audit a real payload from the CLI:
 
 ```bash
 npm run audit:raw-expansion -- ./payload.json
 npm run audit:raw-expansion -- ./payload.json --format markdown
 npm run audit:raw-expansion -- ./chain_2026-03-31.jsonl
+```
+
+Audit a chain-log style wrapper from code:
+
+```js
+import {
+  buildRawExpansionAuditReport,
+  extractRawHwpAuditPayload
+} from '@halfway-lab/question-expansion'
+
+const wrapperInput = {
+  payloads: [
+    {
+      text: JSON.stringify({
+        round_id: 'round_8',
+        questions: ['How should identity systems balance autonomy and security?'],
+        unfinished: ['Which infrastructure dependency still controls the outcome?'],
+        paths: [
+          {
+            continuation_hook: 'Which layer still defines the practical terms?'
+          }
+        ]
+      })
+    }
+  ],
+  meta: {
+    agentMeta: {
+      sessionId: 'live-session-8',
+      provider: 'bailian',
+      model: 'qwen3-max'
+    }
+  }
+}
+
+const auditPayload = extractRawHwpAuditPayload(wrapperInput)
+const report = buildRawExpansionAuditReport(wrapperInput)
+
+console.log(auditPayload.meta.sessionId)
+console.log(report.sourceKind)
+console.log(report.derivedFields.paths)
 ```
 
 Build a product-facing expansion view model:
@@ -218,6 +293,8 @@ const viewModel = buildExpansionViewModel({
 
 console.log(viewModel.structuredOverview)
 ```
+
+The audit entry points accept either a raw expansion payload or a wrapper input with `payloads` and optional `meta.agentMeta`. For TypeScript consumers, that surface is exported as `RawExpansionAuditInput`.
 
 ## What Makes It Different
 
