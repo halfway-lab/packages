@@ -824,8 +824,10 @@ test('pickStringField resolves field aliases correctly', () => {
   assert.equal(pickStringField({ nextQuestion: 'Q2' }, 'next_question'), 'Q2')
   assert.equal(pickStringField({ follow_up_question: 'Q3' }, 'next_question'), 'Q3')
   assert.equal(pickStringField({ continuation_hook: 'Q4' }, 'next_question'), 'Q4')
-  assert.equal(pickStringField({ openQuestions: ['Q5'] }, 'next_question'), 'Q5')
-  assert.equal(pickStringField({ nextSteps: ['Q6'] }, 'next_question'), 'Q6')
+  // 注意：openQuestions 和 nextSteps 是数组类型字段，已从 next_question 别名中分离
+  // 它们有独立的 FIELD_ALIASES 条目
+  assert.equal(pickStringField({ openQuestions: ['Q5'] }, 'open_questions'), 'Q5')
+  assert.equal(pickStringField({ nextSteps: ['Q6'] }, 'next_steps'), 'Q6')
   
   // 测试 branch_type 的别名
   assert.equal(pickStringField({ branch_type: 'premise_shift' }, 'branch_type'), 'premise_shift')
@@ -867,8 +869,11 @@ test('FIELD_ALIASES contains expected field mappings', () => {
   assert.ok(Array.isArray(FIELD_ALIASES.next_question))
   assert.ok(FIELD_ALIASES.next_question.includes('follow_up_question'))
   assert.ok(FIELD_ALIASES.next_question.includes('continuation_hook'))
-  assert.ok(FIELD_ALIASES.next_question.includes('openQuestions'))
-  assert.ok(FIELD_ALIASES.next_question.includes('nextSteps'))
+  // 注意：openQuestions 和 nextSteps 是数组类型字段，已从 next_question 别名中分离
+  assert.ok(Array.isArray(FIELD_ALIASES.open_questions))
+  assert.ok(FIELD_ALIASES.open_questions.includes('openQuestions'))
+  assert.ok(Array.isArray(FIELD_ALIASES.next_steps))
+  assert.ok(FIELD_ALIASES.next_steps.includes('nextSteps'))
   
   assert.ok(Array.isArray(FIELD_ALIASES.branch_type))
   assert.ok(FIELD_ALIASES.branch_type.includes('path_type'))

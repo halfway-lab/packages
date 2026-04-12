@@ -150,6 +150,17 @@ export function createPartialRawExpansionPath(path = {}, options = {}) {
       : []
   const parentId = path.parentId ?? path.parent_id ?? null
 
+  // 统一计算 next_question 值（遵循 FIELD_ALIASES 优先级）
+  const nextQuestionValue = String(
+    path.next_question ||
+    path.nextQuestion ||
+    path.follow_up_question ||
+    path.continuation_hook ||
+    openQuestions[0] ||
+    nextSteps[0] ||
+    ''
+  ).trim()
+
   return {
     id,
     path_id: id,
@@ -169,30 +180,10 @@ export function createPartialRawExpansionPath(path = {}, options = {}) {
     next_steps: nextSteps,
     parentId,
     parent_id: parentId,
-    follow_up_question: String(
-      path.follow_up_question ||
-      path.next_question ||
-      path.nextQuestion ||
-      openQuestions[0] ||
-      nextSteps[0] ||
-      ''
-    ).trim(),
-    next_question: String(
-      path.next_question ||
-      path.nextQuestion ||
-      path.follow_up_question ||
-      openQuestions[0] ||
-      nextSteps[0] ||
-      ''
-    ).trim(),
-    nextQuestion: String(
-      path.nextQuestion ||
-      path.next_question ||
-      path.follow_up_question ||
-      openQuestions[0] ||
-      nextSteps[0] ||
-      ''
-    ).trim(),
+    // 三个别名字段使用相同的值
+    follow_up_question: nextQuestionValue,
+    next_question: nextQuestionValue,
+    nextQuestion: nextQuestionValue,
     open_score: typeof path.open_score === 'number'
       ? path.open_score
       : (typeof path.unfinished_score === 'number' ? path.unfinished_score : undefined),

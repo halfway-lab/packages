@@ -95,21 +95,31 @@ export function normalizeExpansionPath(rawPath = {}, options = {}) {
   // 如果有 schema，使用 schema 的 fieldAliases，否则使用硬编码的 FIELD_ALIASES
   const getField = (fieldName, defaultValue) => {
     if (schema) {
-      const value = pickFieldWithSchema(rawPath, fieldName, schema, defaultValue)
-      if (fieldName === 'next_question' && Array.isArray(value)) {
-        return value[0] ?? defaultValue
+      // 对于 next_question，优先使用 next_question 别名，然后回退到 open_questions/next_steps 数组的第一个元素
+      if (fieldName === 'next_question') {
+        const value = pickFieldWithSchema(rawPath, fieldName, schema, null)
+          ?? pickFieldWithSchema(rawPath, 'open_questions', schema, null)?.[0]
+          ?? pickFieldWithSchema(rawPath, 'next_steps', schema, null)?.[0]
+        if (Array.isArray(value)) {
+          return value[0] ?? defaultValue
+        }
+        return value ?? defaultValue
       }
-      return value
+      return pickFieldWithSchema(rawPath, fieldName, schema, defaultValue)
     }
     // 无 schema 时，根据字段类型选择适当的函数
     if (fieldName === 'unfinished_score' || fieldName === 'level') {
       return pickNumberField(rawPath, fieldName, defaultValue)
     }
     if (fieldName === 'next_question') {
-      const value = pickFieldWithSchema(rawPath, fieldName, null, defaultValue)
-      return Array.isArray(value)
-        ? (value[0] ?? defaultValue)
-        : (value !== undefined && value !== null ? String(value).trim() : defaultValue)
+      // 优先使用 next_question 别名，然后回退到 open_questions/next_steps 数组的第一个元素
+      const value = pickFieldWithSchema(rawPath, fieldName, null, null)
+        ?? pickFieldWithSchema(rawPath, 'open_questions', null, null)?.[0]
+        ?? pickFieldWithSchema(rawPath, 'next_steps', null, null)?.[0]
+      if (Array.isArray(value)) {
+        return value[0] ?? defaultValue
+      }
+      return value !== undefined && value !== null ? String(value).trim() : defaultValue
     }
     return pickStringField(rawPath, fieldName, defaultValue)
   }

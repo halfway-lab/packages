@@ -100,7 +100,10 @@ export function normalizeRawHwpPath(rawPath = {}, options = {}) {
     rawPath.tensions ||
     pickFieldWithSchema(rawPath, 'key_tensions', schema, null)
   )
+  // 优先使用 next_question 别名，然后回退到 open_questions/next_steps 数组的第一个元素
   const normalizedNextQuestion = pickFieldWithSchema(rawPath, 'next_question', schema, null)
+    ?? pickFieldWithSchema(rawPath, 'open_questions', schema, null)?.[0]
+    ?? pickFieldWithSchema(rawPath, 'next_steps', schema, null)?.[0]
 
   return {
     ...normalizeExpansionPath({
@@ -208,7 +211,11 @@ export function normalizeRawHwpExpansion(rawHwp = {}, options = {}) {
   return {
     question,
     expansionPaths,
-    coreQuestion: String(pickFieldWithSchema(rawHwp, 'core_question', schema, '')).trim(),
+    coreQuestion: String(
+      pickFieldWithSchema(rawHwp, 'core_question', schema, null) ||
+      question ||  // 回退到已提取的 question 值
+      ''
+    ).trim(),
     keyTensions: keyTensions.length > 0
       ? keyTensions
       : overview.keyTensions,

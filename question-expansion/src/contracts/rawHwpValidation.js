@@ -8,6 +8,8 @@ const PATH_KNOWN_FIELD_NAMES = [
   'path_title',
   'path_summary',
   'next_question',
+  'open_questions',
+  'next_steps',
   'branch_type',
   'unfinished_score',
   'blind_spot_hint',

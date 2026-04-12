@@ -44,12 +44,16 @@ const BASE_FIELD_ALIASES = {
     'next_question',
     'nextQuestion',
     'follow_up_question',
-    'continuation_hook',
-    'openQuestions',
-    'open_questions',
-    'nextSteps',
-    'next_steps'
+    'continuation_hook'
+    // 注意：openQuestions/open_questions 和 nextSteps/next_steps 是数组类型字段
+    // 已在下方单独定义
   ],
+
+  // 待解决问题列表字段（数组类型）
+  open_questions: ['openQuestions', 'open_questions'],
+
+  // 后续步骤列表字段（数组类型）
+  next_steps: ['nextSteps', 'next_steps'],
 
   // 分支类型字段
   branch_type: ['branch_type', 'branchType', 'path_type'],

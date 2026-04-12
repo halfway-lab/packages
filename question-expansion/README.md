@@ -101,7 +101,7 @@ The package is also protocol-version aware. When compatible payloads include fie
 
 ## Version
 
-Current local package version: `0.1.14`
+Current local package version: `0.1.15`
 
 ## License
 
