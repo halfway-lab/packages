@@ -47,7 +47,16 @@ export {
 export { createStreamOrchestrator } from './runtime/streamOrchestrator.js'
 
 // Prompt Fragments
-export { buildPathsFirstJsonSchema, getExpansionPromptFragments } from './contracts/promptFragments.js'
+export {
+  buildPathsFirstJsonSchema,
+  getExpansionPromptFragments,
+  DEPTH_STAGES,
+  getStageForDepth,
+  getDepthAwareSystemHint,
+  getDepthAwareUserInstruction,
+  buildSiblingDedupeHint,
+  getRootAnalysisPromptFragments
+} from './contracts/promptFragments.js'
 
 // Raw Expansion Contract
 export {
@@ -85,7 +94,8 @@ export {
   buildPauseSummary,
   buildPathMarkdown,
   buildSessionSummary,
-  buildExplorationContext
+  buildExplorationContext,
+  buildContinueExpansionRequest
 } from './session/sessionArtifacts.js'
 
 // Session Record

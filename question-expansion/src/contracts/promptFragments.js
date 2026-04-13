@@ -122,3 +122,81 @@ export function getExpansionPromptFragments() {
     ].join('\n')
   }
 }
+
+// ============================================================================
+// A1.1 深度阶段映射
+// ============================================================================
+
+export const DEPTH_STAGES = {
+  diverge:  { maxDepth: 2, pathCount: 3, label: '发散' },
+  focus:    { maxDepth: 3, pathCount: 3, label: '聚焦' },
+  dig:      { maxDepth: 4, pathCount: 2, label: '深挖' },
+  converge: { maxDepth: Infinity, pathCount: 2, label: '收敛' }
+}
+
+export function getStageForDepth(depth) {
+  if (depth <= 2) return 'diverge'
+  if (depth === 3) return 'focus'
+  if (depth === 4) return 'dig'
+  return 'converge'
+}
+
+// ============================================================================
+// A1.2 深度感知 system prompt 片段
+// ============================================================================
+
+export function getDepthAwareSystemHint(depth) {
+  const stage = getStageForDepth(depth)
+  const hints = {
+    diverge: '你正在初步展开阶段，优先打开多样化的思考方向。',
+    focus: '你已进入聚焦阶段。不要重复上层已有方向，而是在选定方向上找到更具体的切入点。',
+    dig: '你已进入深挖阶段。寻找具体机制、证据、前提假设或反例，不要再发散新方向。',
+    converge: '你已进入收敛阶段。找出这条路径真正揭示了什么、还缺什么关键信息、最大盲点在哪里。'
+  }
+  return hints[stage] || hints.diverge
+}
+
+// ============================================================================
+// A1.3 深度感知 user prompt 尾部指令
+// ============================================================================
+
+export function getDepthAwareUserInstruction(depth) {
+  const stage = getStageForDepth(depth)
+  const instructions = {
+    diverge: '请展开成 3 条多样化的思考方向。',
+    focus: '请从这个方向深入，找到 3 条更具体的切入点。不要重复已探索方向。',
+    dig: '请找出 2 条关键的具体机制、证据或前提假设。',
+    converge: '请找出 1-2 个最关键的盲点或未被检验的前提。'
+  }
+  return instructions[stage] || instructions.diverge
+}
+
+// ============================================================================
+// A1.4 兄弟路径去重提示
+// ============================================================================
+
+export function buildSiblingDedupeHint(exploredSiblings = []) {
+  if (!exploredSiblings.length) return ''
+  const titles = exploredSiblings.map(s => s.title).filter(Boolean)
+  if (!titles.length) return ''
+  return `该层级已探索的方向：${titles.join('、')}。请避免与这些方向重复，必须探索新的角度。`
+}
+
+// ============================================================================
+// A3 初步分析 prompt 片段
+// ============================================================================
+
+export function getRootAnalysisPromptFragments() {
+  return {
+    system: [
+      '你是 Question Expander 的初步分析引擎。',
+      '用户提出了一个问题，在展开成多个方向之前，先给出一个简短的初步判断。',
+      '你的回答必须：',
+      '1. 用一句话点明这个问题的核心在于什么',
+      '2. 列出 2-3 个这个问题涉及的关键维度或隐含假设',
+      '3. 简短说明当前对问题的理解还缺少什么信息',
+      '不要展开新方向，不要给长篇回答，不要给最终结论。'
+    ].join('\n'),
+    jsonFormat: '{"core_insight": "...", "dimensions": ["..."], "missing": "..."}'
+  }
+}

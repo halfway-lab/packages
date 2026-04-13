@@ -7,7 +7,7 @@
 - Repo type: package inside the Halfway-Lab workspace
 - Maintainer role: product-domain package
 - Current package version:
-  - `0.1.15`
+  - `0.1.16`
 - Relationship to HWP:
   - downstream interpretation layer for Question Expander
   - not a protocol source of truth

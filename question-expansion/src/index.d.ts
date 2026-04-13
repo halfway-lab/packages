@@ -729,8 +729,50 @@ export interface PromptFragments {
   responseFormat: string
 }
 
+export interface DepthStageConfig {
+  maxDepth: number
+  pathCount: number
+  label: string
+}
+
+export interface DepthStages {
+  diverge: DepthStageConfig
+  focus: DepthStageConfig
+  dig: DepthStageConfig
+  converge: DepthStageConfig
+}
+
+export interface RootAnalysisPromptFragments {
+  system: string
+  jsonFormat: string
+}
+
+export interface ContinueExpansionRequestOptions {
+  exploredSiblings?: Array<{ title?: string; summary?: string }>
+}
+
+export interface ContinueExpansionRequestResult {
+  parent_path: string
+  level: number
+  context: {
+    explored_siblings: Array<{ title?: string; summary?: string }>
+  }
+}
+
+export const DEPTH_STAGES: DepthStages
+
 export function buildPathsFirstJsonSchema(): PathsFirstJsonSchema
 export function getExpansionPromptFragments(): PromptFragments
+export function getStageForDepth(depth: number): 'diverge' | 'focus' | 'dig' | 'converge'
+export function getDepthAwareSystemHint(depth: number): string
+export function getDepthAwareUserInstruction(depth: number): string
+export function buildSiblingDedupeHint(exploredSiblings?: Array<{ title?: string }>): string
+export function getRootAnalysisPromptFragments(): RootAnalysisPromptFragments
+export function buildContinueExpansionRequest(
+  parentPath: string,
+  level: number,
+  options?: ContinueExpansionRequestOptions
+): ContinueExpansionRequestResult
 
 // ==================== Audit Types ====================
 

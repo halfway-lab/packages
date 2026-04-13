@@ -2362,3 +2362,133 @@ test('getExpansionPromptFragments returns all required fragment keys', () => {
   assert.ok(fragments.fieldNames.includes('path_title'))
   assert.ok(fragments.fieldNames.includes('next_question'))
 })
+
+// Import new functions for testing
+import {
+  DEPTH_STAGES,
+  getStageForDepth,
+  getDepthAwareSystemHint,
+  getDepthAwareUserInstruction,
+  buildSiblingDedupeHint,
+  getRootAnalysisPromptFragments,
+  buildContinueExpansionRequest
+} from '../src/index.js'
+
+// ==================== Depth-Aware Prompt Fragments Tests ====================
+
+test('DEPTH_STAGES contains 4 stages with correct structure', () => {
+  assert.ok(DEPTH_STAGES.diverge, 'should have diverge stage')
+  assert.ok(DEPTH_STAGES.focus, 'should have focus stage')
+  assert.ok(DEPTH_STAGES.dig, 'should have dig stage')
+  assert.ok(DEPTH_STAGES.converge, 'should have converge stage')
+
+  // Verify each stage has required properties
+  for (const stageName of ['diverge', 'focus', 'dig', 'converge']) {
+    const stage = DEPTH_STAGES[stageName]
+    assert.ok(typeof stage.maxDepth === 'number', `${stageName} should have maxDepth`)
+    assert.ok(typeof stage.pathCount === 'number', `${stageName} should have pathCount`)
+    assert.ok(typeof stage.label === 'string', `${stageName} should have label`)
+  }
+})
+
+test('getStageForDepth returns correct stage for various depths', () => {
+  assert.strictEqual(getStageForDepth(1), 'diverge')
+  assert.strictEqual(getStageForDepth(2), 'diverge')
+  assert.strictEqual(getStageForDepth(3), 'focus')
+  assert.strictEqual(getStageForDepth(4), 'dig')
+  assert.strictEqual(getStageForDepth(5), 'converge')
+  assert.strictEqual(getStageForDepth(10), 'converge')
+})
+
+test('getDepthAwareSystemHint returns non-empty string for each depth', () => {
+  const depths = [1, 2, 3, 4, 5, 10]
+  for (const depth of depths) {
+    const hint = getDepthAwareSystemHint(depth)
+    assert.ok(typeof hint === 'string', `depth ${depth} should return string`)
+    assert.ok(hint.length > 0, `depth ${depth} should return non-empty string`)
+  }
+
+  // Verify different depths return different hints
+  const hintDiverge = getDepthAwareSystemHint(1)
+  const hintFocus = getDepthAwareSystemHint(3)
+  const hintDig = getDepthAwareSystemHint(4)
+  const hintConverge = getDepthAwareSystemHint(5)
+
+  assert.notStrictEqual(hintDiverge, hintFocus, 'diverge and focus should differ')
+  assert.notStrictEqual(hintFocus, hintDig, 'focus and dig should differ')
+  assert.notStrictEqual(hintDig, hintConverge, 'dig and converge should differ')
+})
+
+test('getDepthAwareUserInstruction returns non-empty string for each depth', () => {
+  const depths = [1, 2, 3, 4, 5, 10]
+  for (const depth of depths) {
+    const instruction = getDepthAwareUserInstruction(depth)
+    assert.ok(typeof instruction === 'string', `depth ${depth} should return string`)
+    assert.ok(instruction.length > 0, `depth ${depth} should return non-empty string`)
+  }
+
+  // Verify different depths return different instructions
+  const instDiverge = getDepthAwareUserInstruction(1)
+  const instFocus = getDepthAwareUserInstruction(3)
+  const instDig = getDepthAwareUserInstruction(4)
+  const instConverge = getDepthAwareUserInstruction(5)
+
+  assert.notStrictEqual(instDiverge, instFocus, 'diverge and focus should differ')
+  assert.notStrictEqual(instFocus, instDig, 'focus and dig should differ')
+  assert.notStrictEqual(instDig, instConverge, 'dig and converge should differ')
+})
+
+test('buildSiblingDedupeHint handles various input cases', () => {
+  // Empty array returns empty string
+  assert.strictEqual(buildSiblingDedupeHint([]), '')
+
+  // Array with titles returns hint containing titles
+  const withTitles = [{ title: '方向A' }, { title: '方向B' }]
+  const hintWithTitles = buildSiblingDedupeHint(withTitles)
+  assert.ok(hintWithTitles.includes('方向A'))
+  assert.ok(hintWithTitles.includes('方向B'))
+  assert.ok(hintWithTitles.includes('避免'))
+
+  // Array without titles returns empty string
+  const withoutTitles = [{ summary: 'Summary only' }, { other: 'data' }]
+  assert.strictEqual(buildSiblingDedupeHint(withoutTitles), '')
+
+  // No argument returns empty string
+  assert.strictEqual(buildSiblingDedupeHint(), '')
+
+  // Mixed array (some with title, some without)
+  const mixed = [{ title: '有标题' }, { summary: '无标题' }]
+  const hintMixed = buildSiblingDedupeHint(mixed)
+  assert.ok(hintMixed.includes('有标题'))
+  assert.ok(!hintMixed.includes('无标题'))
+})
+
+test('getRootAnalysisPromptFragments returns correct structure', () => {
+  const fragments = getRootAnalysisPromptFragments()
+  assert.ok(typeof fragments === 'object', 'should return object')
+  assert.ok(typeof fragments.system === 'string', 'should have system string')
+  assert.ok(typeof fragments.jsonFormat === 'string', 'should have jsonFormat string')
+  assert.ok(fragments.system.length > 0, 'system should be non-empty')
+  assert.ok(fragments.jsonFormat.length > 0, 'jsonFormat should be non-empty')
+})
+
+test('buildContinueExpansionRequest returns correct structure', () => {
+  // Basic call
+  const result1 = buildContinueExpansionRequest('path-1', 2)
+  assert.strictEqual(result1.parent_path, 'path-1')
+  assert.strictEqual(result1.level, 2)
+  assert.ok(Array.isArray(result1.context.explored_siblings))
+  assert.strictEqual(result1.context.explored_siblings.length, 0)
+
+  // With explored siblings
+  const result2 = buildContinueExpansionRequest('path-1', 2, {
+    exploredSiblings: [
+      { title: 'Sibling A', summary: 'Summary A' },
+      { title: 'Sibling B', summary: 'Summary B' }
+    ]
+  })
+  assert.strictEqual(result2.context.explored_siblings.length, 2)
+  assert.strictEqual(result2.context.explored_siblings[0].title, 'Sibling A')
+  assert.strictEqual(result2.context.explored_siblings[0].summary, 'Summary A')
+  assert.strictEqual(result2.context.explored_siblings[1].title, 'Sibling B')
+})

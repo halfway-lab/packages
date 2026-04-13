@@ -393,4 +393,35 @@ export function buildExplorationContext(rootPaths = [], childPathsMap = {}, opti
   }
 }
 
+/**
+ * Build a continue expansion request payload for HWP.
+ *
+ * @param {string} parentPath - The parent path ID or title to continue expanding
+ * @param {number} level - The hierarchical level for the expansion
+ * @param {Object} [options={}] - Optional parameters
+ * @param {Array<{title: string, summary: string}>} [options.exploredSiblings=[]] - Already explored sibling paths
+ * @returns {Object} Continue expansion request payload with context
+ *
+ * @example
+ * buildContinueExpansionRequest('path-1', 2)
+ * // => { parent_path: 'path-1', level: 2, context: { explored_siblings: [] } }
+ *
+ * @example
+ * buildContinueExpansionRequest('path-1', 2, {
+ *   exploredSiblings: [{ title: 'Sibling A', summary: 'Summary A' }]
+ * })
+ * // => { parent_path: 'path-1', level: 2, context: { explored_siblings: [{ title: 'Sibling A', summary: 'Summary A' }] } }
+ */
+export function buildContinueExpansionRequest(parentPath, level, options = {}) {
+  return {
+    parent_path: parentPath,
+    level: level,
+    context: {
+      explored_siblings: (options.exploredSiblings || []).map(p => ({
+        title: p.title,
+        summary: p.summary
+      }))
+    }
+  }
+}
 
