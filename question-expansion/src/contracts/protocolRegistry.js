@@ -27,70 +27,10 @@
 
 // ============================================
 // 内置 Schema 定义
+// 注意：BASE_FIELD_ALIASES 已统一到 fieldHelpers.js 的 FIELD_ALIASES
 // ============================================
 
-const BASE_FIELD_ALIASES = {
-  // ID 字段
-  id: ['id', 'path_id', 'pathId'],
-
-  // 标题字段
-  path_title: ['path_title', 'title', 'pathTitle'],
-
-  // 摘要字段
-  path_summary: ['path_summary', 'summary', 'pathSummary'],
-
-  // 下一个问题字段
-  next_question: [
-    'next_question',
-    'nextQuestion',
-    'follow_up_question',
-    'continuation_hook'
-    // 注意：openQuestions/open_questions 和 nextSteps/next_steps 是数组类型字段
-    // 已在下方单独定义
-  ],
-
-  // 待解决问题列表字段（数组类型）
-  open_questions: ['openQuestions', 'open_questions'],
-
-  // 后续步骤列表字段（数组类型）
-  next_steps: ['nextSteps', 'next_steps'],
-
-  // 分支类型字段
-  branch_type: ['branch_type', 'branchType', 'path_type'],
-
-  // 未完成度分数字段
-  unfinished_score: ['unfinished_score', 'unfinishedScore', 'open_score'],
-
-  // 盲点提示字段
-  blind_spot_hint: ['blind_spot_hint', 'blindSpotHint', 'risk_hint'],
-
-  // 创建时间字段
-  created_at: ['created_at', 'createdAt'],
-
-  // 层级/深度字段
-  level: ['level', 'depth'],
-
-  // 核心问题字段
-  core_question: ['core_question', 'coreQuestion', 'question'],
-
-  // 关键张力字段
-  key_tensions: ['key_tensions', 'keyTensions', 'tensions'],
-
-  // 下一个问题列表字段
-  next_questions: ['next_questions', 'nextQuestions'],
-
-  // 标签字段
-  tags: ['tags', 'labels'],
-
-  // 路径列表字段
-  paths: ['paths', 'expansion_paths'],
-
-  // 父路径 ID 字段
-  parent_id: ['parent_id', 'parentId'],
-
-  // 会话 ID 字段
-  session_id: ['session_id', 'sessionId']
-}
+import { FIELD_ALIASES as BASE_FIELD_ALIASES } from '../utils/fieldHelpers.js'
 
 const BASE_OPTIONAL_FIELDS = [
   'question',

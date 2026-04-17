@@ -35,6 +35,7 @@ export function buildExpansionViewModel({
   pauseCards = {}
 }) {
   const focusedPath = findPathById(rootPaths, childPathsMap, focusedPathId)
+  // focusedChildren 只包含追问展开的子节点（不包含 focusedPath 本身）
   const focusedChildren = focusedPathId ? (childPathsMap[String(focusedPathId)] || []) : []
   const focusedScopeIds = buildFocusedScopeIds({
     focusedPathId,
@@ -50,7 +51,8 @@ export function buildExpansionViewModel({
     overviewScope: buildOverviewScope(focusedPath),
     structuredOverview: buildStructuredOverview(question, rootPaths, {
       focusedPath,
-      focusedChildren
+      focusedChildren,
+      childPathsMap
     }),
     sessionSummary: buildSessionSummary({
       question,

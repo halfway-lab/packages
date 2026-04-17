@@ -1305,7 +1305,7 @@ export function findPathById(
 export function buildStructuredOverview(
   question: string,
   rootPaths: NormalizedPath[],
-  options?: { focusedPath?: NormalizedPath | null; focusedChildren?: NormalizedPath[] }
+  options?: { focusedPath?: NormalizedPath | null; focusedChildren?: NormalizedPath[]; childPathsMap?: ChildPathsMap }
 ): StructuredOverview
 
 // Branch Types

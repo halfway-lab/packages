@@ -14,6 +14,7 @@ import {
  * @param {Object} options - Overview options
  * @param {NormalizedPath|null} [options.focusedPath] - Currently focused path
  * @param {NormalizedPath[]} [options.focusedChildren] - Children of focused path
+ * @param {ChildPathsMap} [options.childPathsMap] - Child paths map for recursive collection
  * @returns {StructuredOverview} Structured overview with core question, tensions, and next questions
  *
  * @example
@@ -28,13 +29,58 @@ export function buildStructuredOverview(question, rootPaths = [], options = {}) 
   const paths = Array.isArray(rootPaths) ? rootPaths.filter(Boolean) : []
   const focusedPath = options.focusedPath || null
   const focusedChildren = Array.isArray(options.focusedChildren) ? options.focusedChildren.filter(Boolean) : []
-  const overviewPaths = focusedChildren.length > 0 ? focusedChildren : paths
+  const childPathsMap = options.childPathsMap || {}
+  
+  // 追问时，追加子路径到根路径（递归收集所有层级）
+  const overviewPaths = focusedChildren.length > 0
+    ? mergeOverviewPaths(paths, focusedChildren, childPathsMap)
+    : paths
 
   return {
     coreQuestion: buildCoreQuestion(normalizedQuestion, overviewPaths, focusedPath),
     keyTensions: buildKeyTensions(overviewPaths, focusedPath),
     nextQuestions: buildNextQuestions(overviewPaths, focusedPath)
   }
+}
+
+/**
+ * 合并根路径和追问展开的所有子路径（递归收集所有层级）
+ * 
+ * @param {NormalizedPath[]} rootPaths - 根路径
+ * @param {NormalizedPath[]} focusedChildren - 追问展开的子路径
+ * @param {ChildPathsMap} childPathsMap - 子路径映射（用于递归收集更深层级）
+ * @returns {NormalizedPath[]} 合并后的路径列表
+ */
+function mergeOverviewPaths(rootPaths, focusedChildren, childPathsMap = {}) {
+  const existingIds = new Set(rootPaths.map(p => String(p.id)))
+  
+  // 递归收集所有层级的子路径
+  const allNewPaths = []
+  const stack = [...focusedChildren]
+  
+  while (stack.length > 0) {
+    const current = stack.pop()
+    if (!current || current.id == null) {
+      continue
+    }
+    
+    const currentId = String(current.id)
+    
+    if (!existingIds.has(currentId)) {
+      existingIds.add(currentId)
+      allNewPaths.push(current)
+    }
+    
+    // 收集当前节点的子节点，加入栈中继续遍历
+    const children = childPathsMap[currentId] || []
+    for (const child of children) {
+      if (child && child.id != null && !existingIds.has(String(child.id))) {
+        stack.push(child)
+      }
+    }
+  }
+  
+  return [...rootPaths, ...allNewPaths]
 }
 
 function buildCoreQuestion(question, paths, focusedPath) {
@@ -132,7 +178,7 @@ function normalizeNextQuestion(value) {
     return ''
   }
 
-  return text
-    .replace(/^(核心观点|继续追问|补充追问|延展路径|下一步)[:：]\s*/u, '')
-    .trim()
+  // 移除常见前缀标签：核心观点、继续追问、补充追问、延展路径、下一步（后面可跟冒号或中文冒号）
+  const prefixPattern = /^(核心观点|继续追问|补充追问|延展路径|下一步)[:：]\s*/u
+  return text.replace(prefixPattern, '').trim()
 }
